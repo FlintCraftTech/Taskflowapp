@@ -18,14 +18,16 @@ I build in Claude Code using a structured workflow guided by this document.
 - After deduping, provide a **Suggestions** list — fixes or improvements you spot that fit the current scope (`UX.md`). For each, explain the benefit in plain English and ask whether it goes in the next build or in `BACKLOG.md`.
 - Provide a **Discoveries** list at the bottom of your planning response — bugs or improvements that fall outside the current project scope (`UX.md`). Do not fix these. They need a `UX.md` update before they can enter the build pipeline.
 - For every change you propose, explicitly label it as [Requested] (I asked for it) or [Suggested] (You think it's a good idea).
+- **Whenever a decision is reached that changes `BACKLOG.md` — adding, removing, reordering, splitting, or reclassifying an item or batch — edit `BACKLOG.md` immediately. Do not describe the change as something for me to do.** I review the edits afterwards; I do not apply them myself.
+- When wrapping a planning session, your recap describes what you have **already changed** in `BACKLOG.md`. It does not list pending edits for me to apply. If a decision was deferred (e.g. you need an answer from me before you can edit), say so explicitly and name the question.
 
 ### Before build
 
 - Group all our agreed changes and additions into the existing batches, creating new batches where applicable.
-- Roll the existing batched changes from `BACKLOG.md` with new ones into reorganised batches — each one small enough to build and test in one go.
-- Show me the batches for review before finalising anything. The top batch is the next build.
+- Edit `BACKLOG.md` to roll the existing batched changes together with the new ones into reorganised batches — each one small enough to build and test in one go.
+- Show me the resulting batches for review. The top batch is the next build.
 - For the 'Next Build' batch, list every file you intend to modify and a one-sentence summary of the only change happening in that file. If a file requires a rewrite instead of a surgical edit, explain why.
-- After batch review, add all except the next batch for building to `BACKLOG.md` according to the instructions inside the file.
+- Make any further edits to `BACKLOG.md` requested in batch review directly. Do not ask me to edit the file.
 - Flag any conflicts or concerns before proceeding with the build.
 - Prompt me to switch out of plan mode.
 
@@ -49,7 +51,7 @@ I will share a list of any test results from the last build, and any further not
 
 ### Before building
 
-I review all upcoming changes in the next build.
+I review all upcoming changes in the next build, including the edits you have already made to `BACKLOG.md`.
 
 ### After building
 
@@ -68,9 +70,9 @@ I review all upcoming changes in the next build.
 
 Three files, with different jobs. Read the one relevant to what you're doing.
 
-- `UX.md` — the user-facing description of the app: every functionality and UI element the user experiences, and why the user needs it. Describes only what's been decided. Open questions live in `BACKLOG.md`, not here.
+- `UX.md` — the user-facing description of the app: every functionality and UI element the user experiences, and why the user needs it. I maintain this manually or in a planning chat; you do not edit it during builds.
 - `MANIFEST.md` — a flat, alphabetical glossary of every named element in the codebase that the user might want context on (components, screens, services, files with a discrete purpose). One-line plain-English entries. Maintained by Claude during builds; the user does not maintain it. The user is not expected to read it cover-to-cover — it's a reference for lookups and a check against drift.
-- `BACKLOG.md` — all deferred work in one place. Three sections: red flags (security concerns to address), planning batches (questions to resolve before a build batch can run), and build batches (engineering work). Top section first, top item first.
+- `BACKLOG.md` — deferred changes not yet built, organised as batches. **Maintained by Claude during planning; the user does not maintain it.** When a planning decision changes the backlog, Claude edits this file directly.
 
 ### UX.md structure
 
@@ -88,7 +90,9 @@ Every project's `UX.md` follows this shape. Start a new project by copying these
 
 The "the user needs this because..." line is **required, not optional**. It forces articulation of the why before the how, which protects against feature drift and makes scope decisions easier later.
 
-`UX.md` only describes what has been decided. If a feature isn't yet specified — either fully missing or with unresolved details — it does NOT go in `UX.md` as a placeholder. Instead, the open question goes into `BACKLOG.md` as a planning batch (see below). Once resolved, the answer is folded into the relevant `UX.md` entry and the planning batch is removed.
+If a feature's behaviour is not yet decided, mark it `[TO FILL IN — specific question]` rather than guessing. Claude will ask about `[TO FILL IN]` items in the next planning session.
+
+**Known gaps — to describe before first use.** A bullet list of features or aspects that exist (or need to exist) but that I can't describe yet without more information. Each item is a single bullet phrased as a question or topic. The section shrinks over time as gaps are filled. Delete the section when empty.
 
 ### MANIFEST.md structure
 
@@ -100,32 +104,15 @@ The "the user needs this because..." line is **required, not optional**. It forc
 
 Include things the user might plausibly ask about: components, screens, services, modules, files with a discrete purpose. Do not include trivial helpers, internal utility functions, or boilerplate.
 
-For a brand-new project with no code yet, `MANIFEST.md` starts empty (header only). Do not pre-populate it during planning, even if `UX.md` already names features and screens — entries describe things that exist in the codebase, and during planning nothing exists yet. The first build is what creates the first entries.
-
 If a project ever grows large enough that the flat list becomes hard to scan, switch to alphabetical sections by area. Don't pre-empt this — wait until the flat list actually hurts.
 
 ### BACKLOG.md structure
 
-**Header.** A brief statement of purpose, plus the ordering rule: the top section, top item is the next thing to address.
+**Header.** A brief statement of purpose, plus the ordering rule: the top batch is the next build (after any one currently in progress). Includes the maintenance rule: maintained by Claude during planning, not by the user.
 
-`BACKLOG.md` has three sections, in this order from top to bottom.
+**Batches.** Each batch is a heading plus a list of changes, ordered top-to-bottom by priority. Each batch should be small enough to build and test in one sitting. Within a batch, each change is one line.
 
-**Red flags.** Security concerns Claude has surfaced and the user has chosen to defer. Each item is a blockquote starting with **`[RED FLAG]`** in bold, then a one-line description, then the context where it was found (which batch, when). Initially empty; populated by Claude during sessions per "Red flags — screen and surface" below. Items are removed when addressed. Top of BACKLOG so they're impossible to miss.
-
-**Planning batches.** Open questions that must be resolved before some build batch can run. Each planning batch is a heading plus the questions to answer, plus a one-line note saying which build batch it blocks (so the order is obvious). Once resolved, answers are folded into the relevant `UX.md` entries and the planning batch is removed.
-
-**Build batches.** Engineering work — code to be written. Each batch is a heading plus a list of changes, ordered top-to-bottom by priority. Each batch should be small enough to build and test in one sitting. Within a batch, each change is one line. A change only belongs here if it serves a `UX.md` entry. If a proposed change does not trace to `UX.md`, it is a Discovery, not a build item — it needs a planning batch (or a `UX.md` update) before it can become a build batch.
-
-## Red flags — screen and surface
-
-During every session (planning or building), Claude actively screens for security concerns: how OAuth tokens are stored, the scope of API permissions requested, where user data is logged or written, what leaves the device, what's accessible to other apps on the device, and similar concerns specific to the project's surface area.
-
-When Claude spots a concern:
-1. Surface it in chat immediately, in plain English, with: what the concern is, why it matters, and the simplest fix.
-2. Ask the user whether to address it now (in the current build) or defer.
-3. If deferred, add an entry to the **Red flags** section at the top of `BACKLOG.md`, formatted as described above.
-
-Red flags are not limited to "things the user thought to ask about." Claude raises them proactively, even if the user did not request a security review.
+If a change does not serve any `UX.md` entry, it is a Discovery, not a backlog item — it does not belong in `BACKLOG.md` until `UX.md` is updated to cover it.
 
 ### When to read each document
 
@@ -133,10 +120,13 @@ Before making any change: read the relevant section of `UX.md` to understand the
 
 Do not edit `UX.md` during build sessions. If user-facing behaviour has changed in a way `UX.md` should reflect, flag it at the end of your response, suggesting a change. I will update `UX.md` manually or in a planning chat.
 
+`BACKLOG.md` is yours to edit during planning, as described above. Read it at the start of every planning session so your edits build on its current state, not on memory of a previous one.
+
 ## What not to do
 
 - Do not add features not listed in the current batch prompt.
 - Do not refactor, rename, or restructure anything without explicit confirmation.
+- Do not describe a `BACKLOG.md` edit as something for me to apply. Make the edit, then tell me what changed.
 
 ---
 
