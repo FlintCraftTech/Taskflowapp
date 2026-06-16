@@ -1,4 +1,4 @@
-# [HASH] — SPEC.md — folded 2026-06-16 planning decisions into seven sections (Strategy-doc row, collapsed Project card, date-strip details, 4 AM day default, tray rollover-clear, paused-sub local-only, no notifications in v1)
+# 86d521b — SPEC.md — folded 2026-06-16 planning decisions into seven sections (Strategy-doc row, collapsed Project card, date-strip details, 4 AM day default, tray rollover-clear, paused-sub local-only, no notifications in v1)
 
 This spec-edit folds the seven product decisions made in the 2026-06-16 planning session into SPEC.md, so the feature batches that depend on them (0004 Project view, 0005 completed tray, 0006 date picker, 0012 day-begins-at, 0015 Strategy doc, 0017 tier model) build against current product truth rather than a stale spec. SPEC.md is read-only during feature builds, so a dedicated spec-edit batch is the only place these decisions can land.
 

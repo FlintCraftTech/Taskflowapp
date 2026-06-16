@@ -16,14 +16,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Audit SPEC.md — product truth vs exhaustive detail** **[audit-spec-trim]**
-
-SPEC.md is the migrated old UX.md, which was deliberately exhaustive; the method wants SPEC to be product truth (what / who / how / why), not a full UX manual. This audit finds what belongs and what should move out — without losing anything, by naming what each remove-candidate informs. Findings only; the actual trimming happens later via a spec-edit batch after /plan reviews the findings.
-
-Audit:
-- Target: SPEC.md — every section (Project context, UX principles, all Functionalities subsections, Settings, Side menu).
-- Criteria: classify each passage as (a) product truth (what a feature is, who it's for, how it works at the level the product can't be understood without, and why) → KEEP; or (b) exhaustive UX/implementation detail (fine interaction mechanics, layout specifics, step-by-step behaviour a builder needs but a product-truth reader doesn't) → REMOVE-CANDIDATE. For every (b), name what it informs (which build batch 0002–0022, or which doc — SYSTEM-PROMPT.md, REGISTRY, or a possible future design doc) so it's relocated, not lost. Flag genuinely ambiguous passages for /plan rather than judging them. Output: a structured per-section findings list routed to Captures. Do not edit SPEC.md.
-
 --- Plan session here: process the SPEC-trim audit findings (decide keep / relocate / remove per passage, and where relocated detail lives), then queue the spec-edit-trim — before feature builds proceed ---
 
 - **0002 — schedule-view-date-derived-placement** — Four swipeable Schedule screens with date-derived task placement.
@@ -69,6 +61,50 @@ Planned tests that couldn't run in their own session. /plan rolls the runnable o
 Captured outside /plan. Picked up and routed during the next /plan session.
 
 - **Completed-task fate after the Today tray clears** **[completed-task-post-tray-fate]**. Tray retention is now "clear at the day-begins-at rollover" (decided 2026-06-16). Open: when a completed task clears from the tray, what becomes of it — permanently deleted, or kept in a recoverable history/archive (and if so, reached how)? Batch 0005 needs this to know what "clear" does to the data. No forward blocker — resolve in a future /plan before 0005 builds the tray.
+
+- **SPEC-trim audit findings — keep vs relocate** **[spec-trim-audit-findings]**. Output of the audit-spec-trim batch (2026-06-17). The `--- Plan session here ---` marker above the feature builds points at this. The audit read every SPEC.md section and classified each passage as product truth (KEEP) or exhaustive UX/implementation detail (REMOVE-CANDIDATE). Everything not listed below is KEEP by default — only the 20 findings here are flagged. REMOVE-CANDIDATE means: relocate the detail to the named batch or doc, keep the concept in SPEC. FLAG means genuinely ambiguous or a redundancy — a fate decision for /plan to make, not pre-judged. Nothing is removed yet; the actual trimming is a later spec-edit batch this /plan session should queue after deciding each finding.
+
+  Framing
+  - F1 (FLAG). SPEC.md:3-5. The intro defines SPEC as describing "every functionality and UI element as the user experiences it." That is a mandate for exactly the detail this audit trims. Reconcile the intro's scope statement with the trim direction first, or the spec-edit will contradict the doc's stated purpose.
+
+  Data model
+  - F2 (FLAG / if-removed → 0002). SPEC.md:41. The slot numeric thresholds (2–7 days = Soon, 8+ = Later, before today = Today). Ambiguous: these both define what the slots mean (product truth) and read as builder mechanics. Same numbers recur in F7.
+
+  Schedule view
+  - F3 (REMOVE → 0002, date-format dep on 0013). SPEC.md:53. Date-row layout: right-edge placement, multi-line wrap, date right-aligned at the top of the wrap. Keep: that Tomorrow/Soon/Later rows show dates and Today shows one only when the date is past.
+  - F4 (REMOVE → 0002 / 0012). SPEC.md:55. The rollover placement mechanic ("appended to the bottom of Today's list, in their existing relative order"). Keep: that Tomorrow rolls into Today at the boundary, and the no-label/no-reorder no-shame behaviour.
+
+  Project view
+  - F5 (REMOVE → 0004). SPEC.md:83. Card scroll-bounding ("must leave a minimum number of below-the-card lines visible"). Keep: collapsed-by-default and read-only ordering.
+
+  Drag between Schedule screens
+  - F6 (REMOVE → 0008). SPEC.md:104. Gesture mechanics (long-press pick-up, drag to the edge to swipe, drop). Keep: that drag between screens reschedules.
+  - F7 (REMOVE → 0008). SPEC.md:106-109. Exact date results per drop (today / tomorrow / today+2 / today+8; an undated task stays parked). Same numbers as F2.
+
+  Date picker
+  - F8 (REMOVE → 0006). SPEC.md:141. Fade mechanics (linear with distance, not stepped at slot boundaries, capped so far tiles stay readable).
+  - F9 (REMOVE → 0006). SPEC.md:143. Strip dimensions (centred on the task's date or today, one month past to twelve months future, month-jump affordance, 5–7 tiles visible). The phrase "(to be finalised against a real screen at build time)" also violates SPEC's own line-5 rule against undecided placeholders, so it should leave on that ground alone.
+  - F10 (REMOVE → 0006). SPEC.md:145. No-date tile placement and styling (left edge before today, labelled rather than greyed). Keep: that a no-date clearing affordance exists.
+
+  Subtasks
+  - F11 (REMOVE → 0009). SPEC.md:157. Parent tap mechanics (tap reveals indented subtasks, tap again hides, tap the title to open the dialogue). Keep: expand/collapse-instead-of-checkbox and completion roll-up.
+  - F12 (REMOVE → 0010). SPEC.md:165-168. Outliner keystroke mechanics (Enter creates a child, Backspace merges, child drag handle, promote-on-drop, a parent with zero children reverts to a checkbox). Keep: that subtasks are edited as an outliner and that promote exists.
+
+  Drag-target icons and cut/paste
+  - F13 (REMOVE → 0010). SPEC.md:174-179. Icon placement and hover feedback (top-right fixed, per-context icon sets, grows larger with a shadow on hover).
+  - F14 (REMOVE → 0011). SPEC.md:181. Cut/paste OS-clipboard flow mechanics (plain-text indentation round-trip, long-press to Paste, create-via-FAB-then-paste to make a new top-level task). Keep: the decision to use the OS clipboard and the risk-accepted paragraph.
+
+  Add a task and the tray
+  - F15 (REMOVE → REGISTRY / 0005). SPEC.md:124,126. The `projectId` null jargon. Keep the plain version: "Project defaults to unassigned."
+  - F16 (REMOVE, low → 0005). SPEC.md:189. Tray minor mechanics ("moves to the bottom of the tray", "scrollable"). Keep: the tray concept and rollover-clear.
+
+  Onboarding
+  - F17 (REMOVE → 0016). SPEC.md:199. The exact onboarding card copy strings. Keep: that two cards make the Schedule/Project distinction.
+
+  Redundancies (consolidate in the spec-edit)
+  - F18 (FLAG). SPEC.md:73-77 vs 274. Projects-in-the-side-menu is described twice.
+  - F19 (FLAG). SPEC.md:41 / 90-100 / 135. The date-set/clear-moves-the-task effect is stated three times.
+  - F20 (FLAG). SPEC.md:69. The "tasks dated before today" help wording duplicates the parked Help-content capture; coordinate when 0022/Help is built.
 
 ---
 
