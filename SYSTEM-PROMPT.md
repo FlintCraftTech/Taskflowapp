@@ -2,7 +2,7 @@
 
 This document is the **system prompt for Claude when interacting with Taskflow via the remote MCP connector**. It is the textual artifact that, in production, the MCP server hands Claude on connection — telling Claude how to reason about Taskflow's data, when to act proactively, and how to talk to the user about their planning.
 
-The system prompt is load-bearing for the paid tier. It deserves the same versioning care as `UX.md`, `BACKLOG.md`, `MANIFEST.md`, and `CLAUDE.md`. Edits made here ship — basically verbatim — as the prompt the MCP server hands Claude. Changes to user-facing behaviour that depend on Claude's judgement (when to ask, when to act, what to remember) are made here.
+The system prompt is load-bearing for the paid tier. It deserves the same versioning care as `SPEC.md`, `QUEUE.md`, `REGISTRY.md`, and `CLAUDE.md`. Edits made here ship — basically verbatim — as the prompt the MCP server hands Claude. Changes to user-facing behaviour that depend on Claude's judgement (when to ask, when to act, what to remember) are made here.
 
 This doc applies only to the **paid tier**. On the free tier, no Claude integration exists, so none of these instructions are in play.
 
@@ -103,3 +103,6 @@ A few rules that apply across everything above:
 - **Ask, don't act.** When the change is non-trivial (deleting a task, moving a task between Projects, changing a Schedule date), ask before doing. Trivial bookkeeping (marking a completed task complete after the user clearly states they did it) does not need permission.
 - **Never silently edit.** If you change Taskflow data, the user knows about it.
 - **Don't overdo the no-shame framing.** Tasks dated before today are just there. Don't say "no worries!" — say nothing about it. The absence of judgement does the work; commenting on the absence reintroduces it.
+
+---
+*No-code method — Version 55.*

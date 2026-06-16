@@ -1,8 +1,8 @@
-# UX.md — Taskflow User Experience
+# SPEC.md — Taskflow User Experience
 
-This document describes every functionality and UI element as the user experiences it, and why the user needs it. Every entry must correspond to something that actually exists in the current build. If an entry cannot be traced to an existing feature, it is not a current user experience — it is a plan, and it belongs in `BACKLOG.md`.
+This document describes every functionality and UI element as the user experiences it, and why the user needs it. Every entry must correspond to something that actually exists in the current build. If an entry cannot be traced to an existing feature, it is not a current user experience — it is a plan, and it belongs in `QUEUE.md`.
 
-`UX.md` only describes what has been decided. Open questions and undecided details do NOT live here as placeholders, and do NOT live here as sentences that gesture at the doc's own undecidedness (e.g. "currently undecided", "pending decision"). Open questions live in `BACKLOG.md` as planning batches.
+`SPEC.md` only describes what has been decided. Open questions and undecided details do NOT live here as placeholders, and do NOT live here as sentences that gesture at the doc's own undecidedness (e.g. "currently undecided", "pending decision"). Open questions live in `QUEUE.md` as captures.
 
 ## Project context
 
@@ -270,3 +270,6 @@ A side menu opens from the left edge with three sections:
 - **Bottom section — App actions.** Pinned to the bottom of the drawer, separated from the navigation: **Settings**, **Help**, **Thanks**, and **Report a bug**, plus a "turn on AI for the full experience" entry that re-triggers the AI choice flow on the free tier.
 
 The user needs this because the four Schedule screens and the Projects list are both primary navigation surfaces and need to be reachable in one tap, but they are different questions and belong in their own sections. App-level actions belong off the Schedule and Project surfaces (which should be only about tasks) and the bottom of the menu is the obvious place for them.
+
+---
+*No-code method — Version 55.*
