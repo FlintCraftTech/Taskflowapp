@@ -80,7 +80,7 @@ The user needs this because Projects are a primary navigation surface, not a bur
 
 A Project screen has two parts:
 
-- **Top card — currently scheduled (dated) tasks.** A collapsible card listing this Project's dated tasks, ordered by their position in the Schedule view. The card is read-only with respect to ordering: task order is authored only in the Schedule view, and the Project view reflects that order. Tasks can be completed from the card. The card is scroll-bounded — it must leave a minimum number of below-the-card lines visible at the bottom of the screen, so the unscheduled list is never crowded out.
+- **Top card — currently scheduled (dated) tasks.** A collapsible card listing this Project's dated tasks, ordered by their position in the Schedule view. **The card is collapsed by default; expanding it is an opt-in act** — a Project opens showing its dreaming surface, not its committed work. The card is read-only with respect to ordering: task order is authored only in the Schedule view, and the Project view reflects that order. Tasks can be completed from the card. The card is scroll-bounded — it must leave a minimum number of below-the-card lines visible at the bottom of the screen, so the unscheduled list is never crowded out.
 - **Below the card — undated tasks in this Project.** Fully reorderable within the Project. This is the dreaming surface — the place tasks live when they belong to this area of life but have not been committed for any specific time.
 
 When an undated task in this list is given a date (in the edit modal), it moves up into the top card and appears in the corresponding Schedule slot.
@@ -138,9 +138,11 @@ The user needs this because they need a way to change the two things drag-to-res
 
 ### Date picker — side-scrolling date strip
 
-The date field inside the edit dialogue is a horizontal, side-scrollable strip of date tiles, embedded directly in the dialogue (not a popup). Each tile shows a single date in DD/MM format (or MM/DD per the user's setting). The user scrolls left and right to find a date and taps a tile to select it. The selected tile is visually highlighted. Date tiles fade to grey the further they are from today — today is the visual anchor and the least-grey tile, giving the user a sense of how far they have scrolled.
+The date field inside the edit dialogue is a horizontal, side-scrollable strip of date tiles, embedded directly in the dialogue (not a popup). Each tile shows a single date in DD/MM format (or MM/DD per the user's setting). The user scrolls left and right to find a date and taps a tile to select it. The selected tile is visually highlighted. Today is the visual anchor; tiles fade with distance from today, the fade scaling **linearly with that distance — not stepped at the Schedule-slot boundaries — and capped so that even far-off tiles stay readable** rather than fading out entirely. The fade gives the user a sense of how far they have scrolled.
 
-A "no date" option at the strip's edge allows the user to clear the date.
+When the dialogue opens, the strip is **centred on the task's own date if it has one, or on today if the task is undated**. The strip spans roughly **one month into the past to twelve months into the future**, with a month-jump fast-forward affordance for crossing that range quickly. Around **five to seven tiles are visible at once** (to be finalised against a real screen at build time).
+
+A **"no date" tile** sits at the **left edge of the strip, before today**, and lets the user clear the date. It is visually distinct — **labelled as "no date" rather than merely greyed** — so it reads as a deliberate choice, not just another faded date tile.
 
 The user needs this because the standard Android date picker (a calendar grid in a popup) is heavy for this app's purpose. Most date assignments in Taskflow are within a week or two of today, and a horizontal strip lets the user scrub through nearby dates as fast as their thumb. Embedding the picker in the dialogue keeps the editing flow continuous.
 
@@ -186,6 +188,8 @@ The user needs this because the operations Taskflow exposes on a dragged task (d
 
 At the bottom of the Today screen is a greyed-out, scrollable list of completed tasks. When the user checks off any task on any Schedule screen or in any Project view, that task moves to the bottom of this tray. Tapping a completed task in the tray opens its edit dialogue, where the user can uncheck individual subtasks (which un-completes the parent and removes it from the tray) or otherwise modify the task.
 
+Completed tasks stay in the tray until the **day-begins-at rollover** (see *Settings → Day begins at*), at which point the tray clears — each new day starts with a fresh, empty tray.
+
 The user needs this because seeing what they have already done provides a sense of progress, and routing all completions through one tray (rather than letting them disappear from each screen individually) gives the user one place to find and undo a mis-tapped completion.
 
 ### Onboarding — first run
@@ -206,6 +210,7 @@ Two tiers, presented openly during onboarding and re-accessible from the side me
 - **Free tier.** Local-only. No cloud sync. No Claude integration. The user gets the full Schedule, full Projects, and the full Strategy doc editor (with its mechanically-generated structure — see *Strategy doc*), plus manual JSON export/import. Free is "hard mode" by design — the user writes everything themselves. Free is not hidden, not punished, and not a time-limited trial. It is a complete product.
 - **Paid tier.** Cloud sync plus Claude integration via remote MCP, bundled. Cloud sync is the infrastructure precondition for the MCP server to be reachable from Anthropic's servers; the two cannot meaningfully be separated.
 - **Trial.** 30 days of paid tier, handled through Google Play.
+- **Paused subscription.** While a paid subscription is paused, Taskflow reverts to **local-only** operation — no cloud sync, the same as the free tier (a non-paying user is never the case where data lives only in the cloud). The device's Room database stays the source of truth throughout, and re-syncs to the cloud when the subscription resumes.
 
 The side menu always shows a "turn on AI for the full experience" entry that re-triggers the AI choice flow.
 
@@ -225,7 +230,7 @@ The Strategy doc is a single document that lives above Projects in the structure
 
 The doc reads roughly as a chronological-by-priority piece — for example, *"this Project is prioritised above all else,"* *"this Project is for in about six months' time after Project B is completed,"* *"this Project is indefinitely postponed"* — with the user composing the paragraphs under each Project's auto-generated heading.
 
-The doc is reachable from the side menu but is not foregrounded in everyday navigation; Taskflow still presents primarily as a task app.
+The doc is reachable from the side menu — a single calm row at the top of the Projects section, above the individual Projects — but is not foregrounded in everyday navigation; Taskflow still presents primarily as a task app.
 
 **On the free tier**, the user edits the descriptions directly in an in-app markdown editor; structure (headings + order) is auto-managed. There is no Claude reconciliation.
 
@@ -251,7 +256,7 @@ The user needs this because there is a small set of app-level controls (Day begi
 
 ### Settings → Day begins at
 
-The Settings screen contains a single time picker called **Day begins at**. This is the only time picker in the entire app (UX principle 7). It controls when "today" rolls over for the user — used for the Tomorrow → Today rollover, for the calendar's "today" anchor in the side-scrolling date picker, and for any other place the app needs to know whether the user considers themselves to be in a new day yet.
+The Settings screen contains a single time picker called **Day begins at**. This is the only time picker in the entire app (UX principle 7). It controls when "today" rolls over for the user — used for the Tomorrow → Today rollover, for the calendar's "today" anchor in the side-scrolling date picker, and for any other place the app needs to know whether the user considers themselves to be in a new day yet. It ships with a default value of **4:00 AM**.
 
 The user needs this because people who stay up past midnight do not consider the day to have ended — a task they meant to do "today" at 1 AM should still be on Today, not Tomorrow. A single, configurable cutoff lets the user define their own day boundary without polluting the rest of the app with time pickers.
 
@@ -266,10 +271,16 @@ The user needs this because date conventions vary by region and Taskflow ships w
 A side menu opens from the left edge with three sections:
 
 - **Top section — Schedule.** Today, Tomorrow, Soon, Later. Tapping a slot opens that screen.
-- **Middle section — Projects.** The user's Projects, in the order the user has placed them. Tapping a Project opens its Project view. Visible even when empty (the empty state explains what Projects are for). Reordering Projects here also reorders the corresponding heading-and-paragraph pairs in the Strategy doc (see *Strategy doc*).
+- **Middle section — Projects.** At the very top of this section sits a single row for the **Strategy doc**, above the individual Projects — a calm, understated row that is reachable but never foregrounded. Tapping it opens the Strategy doc. Beneath it come the user's Projects, in the order the user has placed them. Tapping a Project opens its Project view. The Projects list is visible even when empty (the empty state explains what Projects are for). Reordering Projects here also reorders the corresponding heading-and-paragraph pairs in the Strategy doc (see *Strategy doc*).
 - **Bottom section — App actions.** Pinned to the bottom of the drawer, separated from the navigation: **Settings**, **Help**, **Thanks**, and **Report a bug**, plus a "turn on AI for the full experience" entry that re-triggers the AI choice flow on the free tier.
 
 The user needs this because the four Schedule screens and the Projects list are both primary navigation surfaces and need to be reachable in one tap, but they are different questions and belong in their own sections. App-level actions belong off the Schedule and Project surfaces (which should be only about tasks) and the bottom of the menu is the obvious place for them.
+
+### No notifications in v1
+
+Taskflow sends no notifications, reminders, or push alerts of any kind in v1. It is a **foreground-only** app: it does its work when the user opens it and stays silent otherwise. This is a deliberate absence — in the same spirit as having no "overdue" label — not a missing feature. Notifications would pull against UX principle 4 (no nagging) and UX principle 7 (no clock-time), the two things Taskflow is built to refuse. The decision is revisitable post-v1.
+
+The user needs this because a task app that pings is a task app that nags, and nagging is the failure mode Taskflow exists to avoid. The silence is part of the no-shame design, not a gap in it.
 
 ---
 *No-code method — Version 55.*

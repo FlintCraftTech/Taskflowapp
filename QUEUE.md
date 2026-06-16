@@ -16,21 +16,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Fold 2026-06-16 planning decisions into SPEC.md** **[spec-edit-planning-2026-06-16]**
-
-Writes the product decisions made in the 2026-06-16 planning session into SPEC.md so the feature batches build against current product truth. SPEC is read-only during feature builds, so this is the spec-edit that updates it. Serves build batches 0004, 0005, 0006, 0012, 0015, 0017 — run before those.
-
-Spec-edit:
-- §Side menu → Projects section + §Strategy doc: the Strategy doc gets its own entry at the top of the Projects section, above individual Projects — a single calm row, reachable but not foregrounded. [serves 0015]
-- §Project view → Top card: the currently-scheduled card is collapsed by default; expanding is opt-in. [serves 0004]
-- §Date picker — side-scrolling date strip: add 5 details — (1) dated task opens centred on its date, undated opens at today; (2) range ~1 month past to ~12 months future with a month-jump fast-forward affordance; (3) fade linear with distance from today, capped so far tiles stay readable, not stepped at slot boundaries; (4) "no date" tile at the LEFT edge (before today), visually distinct (labelled, not greyed); (5) ~5–7 tiles visible at once (finalise against a real screen at build). [serves 0006]
-- §Settings → Day begins at: ship default value = 4:00 AM. [serves 0012]
-- §Completed task tray on Today: completed tasks stay until the day-begins-at rollover, then clear — fresh tray each day. [serves 0005]
-- §Tier model — free and paid: while a subscription is paused, Taskflow reverts to local-only (no cloud sync for a non-paying user); the device DB stays the source of truth and re-syncs on resume. [serves 0017]
-- New scope note (in the style of the spec's existing deliberate absences, e.g. "no overdue label"): no notifications in v1 — Taskflow is foreground-only, per principle 4 (no nagging) and principle 7 (no clock-time). Revisitable post-v1.
-
-(This batch edits SPEC.md only — /next sets _build.md's Files: to SPEC.md.)
-
 **Audit SPEC.md — product truth vs exhaustive detail** **[audit-spec-trim]**
 
 SPEC.md is the migrated old UX.md, which was deliberately exhaustive; the method wants SPEC to be product truth (what / who / how / why), not a full UX manual. This audit finds what belongs and what should move out — without losing anything, by naming what each remove-candidate informs. Findings only; the actual trimming happens later via a spec-edit batch after /plan reviews the findings.

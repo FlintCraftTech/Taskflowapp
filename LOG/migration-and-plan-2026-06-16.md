@@ -1,4 +1,4 @@
-# [HASH] — Migrated docs to the Sovereign Implementer vocabulary, then planned 18 carried-over questions into SPEC decisions, three batches, six parks, and a SPEC-trim audit
+# 1e4b29a — Migrated docs to the Sovereign Implementer vocabulary, then planned 18 carried-over questions into SPEC decisions, three batches, six parks, and a SPEC-trim audit
 
 This session did two things. **First, a vocabulary migration**: the project moved from the no-code-method's older document names to the current structure — UX.md → SPEC.md, BACKLOG/ (a folder of 22 specs + 17 planning questions) collapsed into one QUEUE.md, MANIFEST.md → REGISTRY.md, build-log/ → LOG/. All docs moved from `no-code-method/` to the project root, because the current plugin's hooks hardcode root paths (the old per-project path-block in CLAUDE.md is a dead feature now). Scaffolded FAQ/ and .si-version; rewrote CLAUDE.md's plugin-managed block while preserving the project rules; archived the 22 original backlog specs under `archive/backlog-specs/`; kept SYSTEM-PROMPT.md and TEST-LOG.md as extra source-of-truth docs; fixed internal doc-name references throughout.
 
