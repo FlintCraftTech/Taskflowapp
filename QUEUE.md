@@ -12,9 +12,22 @@ Worked top to bottom. Each batch is one /next session. Subheadings name the kind
 
 The detailed original spec for each build batch is archived at `archive/backlog-specs/` — the filename matches the batch number/slug. These came from the old folder-based backlog; the entry below is the summary, the archived file is the full spec.
 
-**Run /plan before building.** Several batches below depend on open design questions still sitting in Captures (carried over from the old backlog's "Planning batches"). /plan resolves those and folds the answers into SPEC.md before the dependent build runs.
-
 ### Build
+
+**Batch 0001 verification — TaskDao instrumentation tests** **[taskdao-instrumentation-tests]**
+
+The data foundation built in batch 0001 (how tasks, dates, Projects, and subtasks are stored) shipped with ten tests written but never run — first because the app didn't build, then because no device was connected. Both blockers are now gone: the build compiles (resolved 2026-06-16) and a Pixel 6 is connected by wireless adb (confirmed 2026-06-17). This batch runs those ten checks on the device to confirm the foundation holds before more features build on top of it. Rolled in from Deferred tests.
+
+Test (Claude-run, on the connected device):
+- Create a task with a date — it saves and reads back correctly.
+- Create a task with no date — it saves and reads back correctly.
+- Park an undated task on Soon, and on Later — placement persists.
+- Assign a task to a Project, then refile it to a different Project — the link updates.
+- Reorder tasks within a Schedule slot — the new order persists.
+- Reorder tasks within a Project — the new order persists.
+- Create a subtask under a parent — the parent/child link saves.
+- Complete all of a parent's subtasks — the parent rolls up to complete.
+- (Covers TEST-LOG rows #002–011.)
 
 - **0003 — side-menu-schedule-projects-app-actions** — Side drawer as a single navigation list mirroring the spine (Today · Tomorrow · Soon · Later · projects list · Strategy) with app-actions pinned at the bottom, plus the Projects overview spine page. Builds against revised SPEC §Side menu; supersedes the archived spec's three-section framing and the Strategy-row-at-top placement.
 - **0004 — project-view** — Project screen with scheduled-tasks card and undated-tasks list (internal layout unchanged by the spine). Now also reached via the Projects spine page, not only the side menu.
@@ -51,7 +64,6 @@ Build:
 
 Planned tests that couldn't run in their own session. /plan rolls the runnable ones into a test batch.
 
-- **Batch 0001 — TaskDao instrumentation tests (10 tests).** Create-with-date, create-without-date, park on Soon/Later, assign/refile Project FK, reorder within slot and within project, create subtask, subtask completion roll-up (TEST-LOG #002–011). Build now compiles (TEST-LOG #001 resolved 2026-06-16), so these are no longer build-blocked. A device is now connected (Pixel 6 via wireless adb, confirmed 2026-06-17), so these are now runnable — Claude-runnable: I can run them in a test session while the device stays reachable.
 - **Batch 0002 — Schedule view data-dependent rendering.** Needs tasks in the DB (no add path until 0005, or a manual DB seed). Verify on a device: dated tasks land in the correct slot (today + past on Today, tomorrow on Tomorrow, 2–7 days Soon, 8+ Later); past-dated tasks show on Today with a DD/MM date and no overdue label; Tomorrow/Soon/Later rows show their DD/MM date; a long task title wraps to multiple lines with the date staying top-right. (Render, Today-as-default, swipe + arrow-tap navigation, dead-end arrow hiding, and per-slot empty states were confirmed on a Pixel 6 on 2026-06-17.) Confirmed by: viewing seeded tasks on each page — runnable once 0005 lands a create path (or via a manual DB seed); Claude can run it then if a device is reachable.
 
 ## Captures
@@ -62,11 +74,10 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
 
-- **Schedule bucketing doesn't re-evaluate across the day boundary while the app stays open.** The Schedule view computes "now" each time the task flow re-emits — a DB change, or re-subscription when the app returns to foreground. If the app sits continuously in the foreground across the day-begins-at boundary (e.g. 4 AM) with no edits, a task won't move from Tomorrow into Today until the next emission or recomposition. It's an edge case (foreground-only app, and returning to the app re-subscribes and recomputes). Best handled when 0012 wires day-begins-at: add a boundary/lifecycle-resume tick that recomputes placement. Discovered building 0002.
-  Blocked by: 0012 (settings-day-begins-at) — landing; fold the refresh tick into the day-begins-at wiring.
-
 ### Parked
 
+- **Schedule bucketing doesn't re-evaluate across the day boundary while the app stays open.** The Schedule view computes "now" each time the task flow re-emits — a DB change, or re-subscription when the app returns to foreground. If the app sits continuously in the foreground across the day-begins-at boundary (e.g. 4 AM) with no edits, a task won't move from Tomorrow into Today until the next emission or recomposition. It's an edge case (foreground-only app, and returning to the app re-subscribes and recomputes). Best handled when 0012 wires day-begins-at: add a boundary/lifecycle-resume tick that recomputes placement. Discovered building 0002.
+  Blocked by: 0012 (settings-day-begins-at) — landing; fold the refresh tick into the day-begins-at wiring.
 - **Subscription pause — Play Billing pause mechanics.** Verify what Google Play Billing actually exposes for subscription pause (largely Play-Store-controlled, not app-controlled). Staleness-prone, so check at build time, not now.
   Blocked by: the subscription-handling build (queue entry 0017) — behavioural trigger, no slug yet (0017 is still a rough placeholder); confirm the Play Billing pause API when that batch is authored.
 - **Subscription pause — multi-device resume merge.** Policy is decided (paused → revert to local-only). Open: when a paused multi-device user resumes, which device's local state wins / how to merge. Entangled with cloud-sync design.
