@@ -16,7 +16,27 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
---- Plan session here: process the SPEC-trim audit findings (decide keep / relocate / remove per passage, and where relocated detail lives), then queue the spec-edit-trim — before feature builds proceed ---
+**SPEC.md trim — relocate exhaustive UI detail to batch specs** **[spec-edit-trim]**
+
+Output of the SPEC-trim audit (2026-06-17). SPEC.md had drifted into exhaustive UI/implementation mechanics that belong in build batches, not in product truth. This batch trims those passages to concept-level — keeping the concept in SPEC and leaving the detail in each feature's archived batch spec, which already holds it. It also reconciles SPEC's intro (which mandated the very detail being trimmed), removes one jargon leak, dedupes a thrice-stated rule, and folds in the completed-task retention decision. Findings F3, F4, and F18 are held back: they sit in the Schedule-view and side-menu sections that the parked [nav-zoom-spine-and-completed-history] redesign will rewrite, so trimming them now would just be redone.
+
+Spec-edit:
+- F1 — Reword the intro (lines 3–5): SPEC describes what each feature is, how the user experiences it, and why — product truth, not "every UI element." Exhaustive UI mechanics are build decisions recorded in each batch's spec.
+- F5 — Trim the Project-view card scroll-bounding mechanic (line 83) to the concept: the card must not crowd out the unscheduled list. Keep collapsed-by-default and read-only ordering.
+- F6, F7 — Trim drag gesture mechanics and exact per-drop date results (lines 104, 106–109) to the concept: dragging between Schedule screens reschedules. (Day-threshold numbers stay in the data model per F2.)
+- F8, F9, F10 — Trim date-picker fade mechanics, strip dimensions, and no-date-tile styling (lines 141, 143, 145) to the concept: a horizontal date strip with a no-date clearing tile. Remove the "to be finalised against a real screen at build time" placeholder (F9), which breaks SPEC's own no-placeholder rule.
+- F11, F12 — Trim parent tap mechanics and outliner keystroke mechanics (lines 157, 165–168) to the concept: subtasks expand/collapse and roll up completion; they're edited as an outliner; promote exists.
+- F13 — Trim drag-target-icon placement and hover feedback (lines 174–179) to the concept: a context-dependent set of drag targets appears when a task is picked up.
+- F14 — Trim the cut/paste OS-clipboard flow mechanics (line 181) to the concept. Keep the OS-clipboard decision and the risk-accepted paragraph.
+- F15 — Replace the `projectId` null jargon (lines 124, 126) with "Project defaults to unassigned."
+- F16 — Trim the tray "moves to the bottom" / "scrollable" mechanics (line 189) to the concept. Add a clarifying line: completed tasks are retained (not deleted) when the tray clears at rollover — they persist in the database. (Carried from the tray-fate decision; batch 0005 builds against this.)
+- F17 — Trim the exact onboarding card copy (line 199) to the concept: two cards make the Schedule/Project distinction.
+- F19 — Keep the date-set-moves-the-task rule once, in §Move between Schedule and Project; reduce the data-model (line 41) and edit-dialogue (line 135) restatements to short cross-references.
+- F20 — No SPEC edit. Leave the §Tasks dated before today help wording as-is; note the overlap with the parked Help-content capture for coordination when batch 0022 is built.
+
+Build:
+- Edit SPEC.md per the Spec-edit entries above (files: SPEC.md).
+- For each relocated finding, verify the detail already lives in the target archived spec under archive/backlog-specs/ (0004, 0005, 0006, 0008, 0009, 0010, 0011, 0016); backfill any gap. Confirmed gap: F9's strip dimensions are missing from 0006.
 
 - **0002 — schedule-view-date-derived-placement** — Four swipeable Schedule screens with date-derived task placement.
 - **0003 — side-menu-schedule-projects-app-actions** — Side drawer with Schedule, Projects, and app-action sections.
@@ -60,52 +80,6 @@ Planned tests that couldn't run in their own session. /plan rolls the runnable o
 
 Captured outside /plan. Picked up and routed during the next /plan session.
 
-- **Completed-task fate after the Today tray clears** **[completed-task-post-tray-fate]**. Tray retention is now "clear at the day-begins-at rollover" (decided 2026-06-16). Open: when a completed task clears from the tray, what becomes of it — permanently deleted, or kept in a recoverable history/archive (and if so, reached how)? Batch 0005 needs this to know what "clear" does to the data. No forward blocker — resolve in a future /plan before 0005 builds the tray.
-
-- **SPEC-trim audit findings — keep vs relocate** **[spec-trim-audit-findings]**. Output of the audit-spec-trim batch (2026-06-17). The `--- Plan session here ---` marker above the feature builds points at this. The audit read every SPEC.md section and classified each passage as product truth (KEEP) or exhaustive UX/implementation detail (REMOVE-CANDIDATE). Everything not listed below is KEEP by default — only the 20 findings here are flagged. REMOVE-CANDIDATE means: relocate the detail to the named batch or doc, keep the concept in SPEC. FLAG means genuinely ambiguous or a redundancy — a fate decision for /plan to make, not pre-judged. Nothing is removed yet; the actual trimming is a later spec-edit batch this /plan session should queue after deciding each finding.
-
-  Framing
-  - F1 (FLAG). SPEC.md:3-5. The intro defines SPEC as describing "every functionality and UI element as the user experiences it." That is a mandate for exactly the detail this audit trims. Reconcile the intro's scope statement with the trim direction first, or the spec-edit will contradict the doc's stated purpose.
-
-  Data model
-  - F2 (FLAG / if-removed → 0002). SPEC.md:41. The slot numeric thresholds (2–7 days = Soon, 8+ = Later, before today = Today). Ambiguous: these both define what the slots mean (product truth) and read as builder mechanics. Same numbers recur in F7.
-
-  Schedule view
-  - F3 (REMOVE → 0002, date-format dep on 0013). SPEC.md:53. Date-row layout: right-edge placement, multi-line wrap, date right-aligned at the top of the wrap. Keep: that Tomorrow/Soon/Later rows show dates and Today shows one only when the date is past.
-  - F4 (REMOVE → 0002 / 0012). SPEC.md:55. The rollover placement mechanic ("appended to the bottom of Today's list, in their existing relative order"). Keep: that Tomorrow rolls into Today at the boundary, and the no-label/no-reorder no-shame behaviour.
-
-  Project view
-  - F5 (REMOVE → 0004). SPEC.md:83. Card scroll-bounding ("must leave a minimum number of below-the-card lines visible"). Keep: collapsed-by-default and read-only ordering.
-
-  Drag between Schedule screens
-  - F6 (REMOVE → 0008). SPEC.md:104. Gesture mechanics (long-press pick-up, drag to the edge to swipe, drop). Keep: that drag between screens reschedules.
-  - F7 (REMOVE → 0008). SPEC.md:106-109. Exact date results per drop (today / tomorrow / today+2 / today+8; an undated task stays parked). Same numbers as F2.
-
-  Date picker
-  - F8 (REMOVE → 0006). SPEC.md:141. Fade mechanics (linear with distance, not stepped at slot boundaries, capped so far tiles stay readable).
-  - F9 (REMOVE → 0006). SPEC.md:143. Strip dimensions (centred on the task's date or today, one month past to twelve months future, month-jump affordance, 5–7 tiles visible). The phrase "(to be finalised against a real screen at build time)" also violates SPEC's own line-5 rule against undecided placeholders, so it should leave on that ground alone.
-  - F10 (REMOVE → 0006). SPEC.md:145. No-date tile placement and styling (left edge before today, labelled rather than greyed). Keep: that a no-date clearing affordance exists.
-
-  Subtasks
-  - F11 (REMOVE → 0009). SPEC.md:157. Parent tap mechanics (tap reveals indented subtasks, tap again hides, tap the title to open the dialogue). Keep: expand/collapse-instead-of-checkbox and completion roll-up.
-  - F12 (REMOVE → 0010). SPEC.md:165-168. Outliner keystroke mechanics (Enter creates a child, Backspace merges, child drag handle, promote-on-drop, a parent with zero children reverts to a checkbox). Keep: that subtasks are edited as an outliner and that promote exists.
-
-  Drag-target icons and cut/paste
-  - F13 (REMOVE → 0010). SPEC.md:174-179. Icon placement and hover feedback (top-right fixed, per-context icon sets, grows larger with a shadow on hover).
-  - F14 (REMOVE → 0011). SPEC.md:181. Cut/paste OS-clipboard flow mechanics (plain-text indentation round-trip, long-press to Paste, create-via-FAB-then-paste to make a new top-level task). Keep: the decision to use the OS clipboard and the risk-accepted paragraph.
-
-  Add a task and the tray
-  - F15 (REMOVE → REGISTRY / 0005). SPEC.md:124,126. The `projectId` null jargon. Keep the plain version: "Project defaults to unassigned."
-  - F16 (REMOVE, low → 0005). SPEC.md:189. Tray minor mechanics ("moves to the bottom of the tray", "scrollable"). Keep: the tray concept and rollover-clear.
-
-  Onboarding
-  - F17 (REMOVE → 0016). SPEC.md:199. The exact onboarding card copy strings. Keep: that two cards make the Schedule/Project distinction.
-
-  Redundancies (consolidate in the spec-edit)
-  - F18 (FLAG). SPEC.md:73-77 vs 274. Projects-in-the-side-menu is described twice.
-  - F19 (FLAG). SPEC.md:41 / 90-100 / 135. The date-set/clear-moves-the-task effect is stated three times.
-  - F20 (FLAG). SPEC.md:69. The "tasks dated before today" help wording duplicates the parked Help-content capture; coordinate when 0022/Help is built.
-
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
@@ -124,6 +98,26 @@ Captured outside /plan. Picked up and routed during the next /plan session.
   Blocked by: the production custom-instruction text (itself parked, behavioural) and the MCP setup design (0019/0020) — write Help content when 0022 is built and those inputs are ready.
 - **Search.** Confirmed feature, deferred. There IS a search box — finding tasks gets overwhelming at volume. Design decided: search results display like the in-Project/category listing — task details are visible but a task CANNOT be marked complete from the results list (read-only display). Tapping a result navigates to where the task actually lives, so the user can complete or edit it there. Still to pin at build time: search scope (current screen / current Project / whole database — tasks + Projects + Strategy doc).
   Parked: confirmed for a later build, no batch yet; revisit when scoping post-core work. When unparked it needs a spec-edit (add §Search to SPEC) plus a feature batch.
+- **Navigation zoom-spine and completed-history** **[nav-zoom-spine-and-completed-history]**
+  Parked: large navigation-redesign + completed-history design thread; deferred by choice to its own /plan pass. Trigger-less — revisit when you decide to take up the nav redesign. Grew out of [completed-task-post-tray-fate] during /plan 2026-06-17 (evidence citation, not a dependency).
+
+  **Designer-side rationale ("zoom levels of time" — not user-facing copy).** Like zooming from particles to an apple to a landscape, order is visible at some zoom levels and not others. Here the order is time arranged in days/weeks. Tasks sit messily inside a day; a day nests into a week; past about a week, time stops being the useful frame and projects/strategy take over — which don't slice into equal increments the way days do. This is why the navigation can glide cleanly left-to-right from arranging *time* into arranging *projects*: the app moves fluently across zoom levels rather than forcing everything onto a clock. Concept is for us, not the user.
+
+  **The spine (main navigation).** One left-to-right line of full pages, mirrored top-to-bottom in the side menu: **Search · Yesterday · Today · Tomorrow · Soon · Later · Projects · Strategy.** Today is still the default open page. Swipe moves between adjacent pages; the menu jumps directly.
+
+  **Completed-history (the Search page).** The leftmost page lists completed tasks in completion order, most recent at top, with date headers between days. Typing a search narrows what shows below; the relevant date headers still display above each day's results.
+
+  **Day-detail card layer (a separate axis).** Tapping a result, a group, or a date header opens that day on a **card in the foreground** — deliberately a *different* left-right axis from the spine, signalled by the card visual. Swipe right = previous (older) day slides in from the left; swipe left = next (newer) day slides in from the right. Swiping left past the newest card (day-before-yesterday) slides the whole card layer *and* the Search page off in one smooth motion, returning the user to the main spine, landing on **Yesterday**. Yesterday itself is a spine page, not a card. Only from a day card can the user tap a single task to edit or uncomplete it.
+
+  **Share-a-day.** A share button on a day screen shares that single day's completed tasks. Format open — leaning PNG or PDF (PNG seen as most universally readable and still printable); plain-text and app-sensitive output also considered. Reconcile with the existing Strategy-doc share button, which uses the Android share sheet.
+
+  **SPEC consequences when developed.** Rewrites principle 3's wording (Projects also reached via the spine, not only the side menu — keep "not slices of the day"), the Schedule-view "four discrete swipeable screens" framing, and the three-section side-menu structure. Likely revises batches 0002 / 0003 / 0004 and adds new feature batches. Supersedes spec-trim findings F3, F4, F18 — hold those when processing the trim. (F5 is the Project view's internal card layout, which the nav change doesn't rewrite, so it was trimmed normally.)
+
+  **Open sub-questions (must resolve before this can promote):**
+  1. Reconcile with the parked Search feature (find *active* tasks, read-only results, tap to jump to where the task lives). Is the leftmost page completed-history only, with active-task search separate/later — or one unified search covering both?
+  2. Share format (PNG / PDF / plain text / app-sensitive) — research-worthy before deciding.
+  3. v1 vs post-core scope — how much of this set ships in v1.
+  4. Swipe and card-layer interaction detail — best finalized against a real screen.
 - **Onboarding video content.** The multi-page onboarding video must demonstrate Claude/MCP value concretely (for the free-vs-paid choice). Can't be produced until the Claude/MCP integration exists to film. Sequencing note: onboarding (0016) is queued ahead of the MCP work, so 0016 may need to ship with a placeholder video and have the real one added once the integration lands.
   Blocked by: the Claude/MCP integration builds (0019 AI-choice / MCP setup, 0020 remote MCP server, 0021 reconciliation) — behavioural, no slug; produce the video once there's a working integration to demonstrate.
 - **Post-first-test polish review.** After the first end-to-end test, walk the test notes and decide which polish issues warrant their own SPEC.md entry and which fold into existing ones — polish that doesn't trace to SPEC.md is a capture, not a build item.
