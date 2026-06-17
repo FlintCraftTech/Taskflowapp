@@ -1,6 +1,6 @@
 # SPEC.md — Taskflow User Experience
 
-This document describes every functionality and UI element as the user experiences it, and why the user needs it. Every entry must correspond to something that actually exists in the current build. If an entry cannot be traced to an existing feature, it is not a current user experience — it is a plan, and it belongs in `QUEUE.md`.
+This document describes what each feature is, how the user experiences it, and why the user needs it — the product's truth. It is not a catalogue of every UI element: exhaustive UI and implementation mechanics are build decisions, recorded in each batch's spec, not here. Every entry must correspond to something that actually exists in the current build. If an entry cannot be traced to an existing feature, it is not a current user experience — it is a plan, and it belongs in `QUEUE.md`.
 
 `SPEC.md` only describes what has been decided. Open questions and undecided details do NOT live here as placeholders, and do NOT live here as sentences that gesture at the doc's own undecidedness (e.g. "currently undecided", "pending decision"). Open questions live in `QUEUE.md` as captures.
 
@@ -38,7 +38,7 @@ A task has the following user-visible properties:
 
 Where a task appears on the user's screens follows from these properties:
 
-- **Dated tasks** appear in Schedule on the slot derived from their date (today → Today, tomorrow → Tomorrow, 2–7 days out → Soon, 8 or more days out → Later, before today → still Today). They also appear in their Project's top card if they have a Project.
+- **Dated tasks** appear in Schedule on the slot derived from their date (today → Today, tomorrow → Tomorrow, 2–7 days out → Soon, 8 or more days out → Later, before today → still Today). If they have a Project, they also appear in its top card (see *Move between Schedule and Project*).
 - **Undated tasks captured from (or dragged to) Soon or Later** appear on that slot. They do not appear in any Project's top card (cards list dated tasks). They appear in their Project's below-the-card area if they have a Project.
 - **Undated tasks with no Schedule placement** appear only below the card in their Project view.
 
@@ -80,7 +80,7 @@ The user needs this because Projects are a primary navigation surface, not a bur
 
 A Project screen has two parts:
 
-- **Top card — currently scheduled (dated) tasks.** A collapsible card listing this Project's dated tasks, ordered by their position in the Schedule view. **The card is collapsed by default; expanding it is an opt-in act** — a Project opens showing its dreaming surface, not its committed work. The card is read-only with respect to ordering: task order is authored only in the Schedule view, and the Project view reflects that order. Tasks can be completed from the card. The card is scroll-bounded — it must leave a minimum number of below-the-card lines visible at the bottom of the screen, so the unscheduled list is never crowded out.
+- **Top card — currently scheduled (dated) tasks.** A collapsible card listing this Project's dated tasks, ordered by their position in the Schedule view. **The card is collapsed by default; expanding it is an opt-in act** — a Project opens showing its dreaming surface, not its committed work. The card is read-only with respect to ordering: task order is authored only in the Schedule view, and the Project view reflects that order. Tasks can be completed from the card. The card must not crowd out the unscheduled list below it.
 - **Below the card — undated tasks in this Project.** Fully reorderable within the Project. This is the dreaming surface — the place tasks live when they belong to this area of life but have not been committed for any specific time.
 
 When an undated task in this list is given a date (in the edit modal), it moves up into the top card and appears in the corresponding Schedule slot.
@@ -101,12 +101,7 @@ The user needs this because the bright line between Schedule and Project (UX pri
 
 ### Drag a task between Schedule screens to reschedule
 
-Tasks on Schedule screens are draggable in the manner of icons on a phone home screen. Long-pressing a task picks it up; the user can drag it to the left or right edge of the current screen to swipe through to the adjacent slot, and drop it there. Dropping a task on a different slot updates its date as follows:
-
-- **Drop on Today** → date becomes today.
-- **Drop on Tomorrow** → date becomes tomorrow.
-- **Drop on Soon** → date becomes the start of the Soon range (today + 2). If the dragged task was undated, it remains undated and is parked on Soon.
-- **Drop on Later** → date becomes the start of the Later range (today + 8). If the dragged task was undated, it remains undated and is parked on Later.
+Tasks on Schedule screens can be picked up and dragged onto another Schedule slot. Dropping a task on a different slot reschedules it: the task's date is updated to fall in that slot. A task that was undated stays undated and parks on the new slot (only possible on Soon or Later).
 
 When a parent task is dragged, its subtasks travel with it as a single unit — the parent's date (or parking) is rewritten and the children continue under it on the new screen.
 
@@ -122,8 +117,8 @@ The user needs this because tasks in the same slot still have a sequence — wha
 
 The user adds a task from any screen via a floating action button or equivalent affordance. Where the new task goes follows capture-inherits-context (UX principle 5):
 
-- **From Today or Tomorrow** — date is auto-set to today or tomorrow; the task lands on that screen. Project defaults to unassigned (`projectId` is null).
-- **From Soon or Later** — the task lands on that screen. The user is not forced to pick a date; if they leave the date empty, the task remains an undated parked task on that slot. The user is not forced to pick a Project either; if they don't pick one, `projectId` is null.
+- **From Today or Tomorrow** — date is auto-set to today or tomorrow; the task lands on that screen. Project defaults to unassigned.
+- **From Soon or Later** — the task lands on that screen. The user is not forced to pick a date; if they leave the date empty, the task remains an undated parked task on that slot. The user is not forced to pick a Project either; if they don't pick one, the Project defaults to unassigned.
 - **From inside a Project view** — the task is filed in that Project, undated, below the card.
 
 The user can change the Project, the date, or both inside the edit dialogue afterwards.
@@ -132,17 +127,15 @@ The user needs this because the most natural starting point for a new task is th
 
 ### Edit a task
 
-Tapping a task opens an edit dialogue showing its title, notes, Project, and date. The Project field is editable so the user can refile a task. The date field is the side-scrolling date strip (see *Date picker — side-scrolling date strip*) — users can set a date, change a date, or clear a date. Setting a date on a previously-undated task pushes it into Schedule (and into the Project's card if it has a Project); clearing the date drops it out of Schedule. There is no time-of-day picker anywhere in this dialogue (UX principle 7).
+Tapping a task opens an edit dialogue showing its title, notes, Project, and date. The Project field is editable so the user can refile a task. The date field is the side-scrolling date strip (see *Date picker — side-scrolling date strip*) — users can set a date, change a date, or clear a date. Setting or clearing the date moves the task into or out of Schedule accordingly (see *Move between Schedule and Project*). There is no time-of-day picker anywhere in this dialogue (UX principle 7).
 
 The user needs this because they need a way to change the two things drag-to-reschedule cannot change in a single gesture: which Project the task lives in, and whether it's dated at all.
 
 ### Date picker — side-scrolling date strip
 
-The date field inside the edit dialogue is a horizontal, side-scrollable strip of date tiles, embedded directly in the dialogue (not a popup). Each tile shows a single date in DD/MM format (or MM/DD per the user's setting). The user scrolls left and right to find a date and taps a tile to select it. The selected tile is visually highlighted. Today is the visual anchor; tiles fade with distance from today, the fade scaling **linearly with that distance — not stepped at the Schedule-slot boundaries — and capped so that even far-off tiles stay readable** rather than fading out entirely. The fade gives the user a sense of how far they have scrolled.
+The date field inside the edit dialogue is a horizontal, side-scrollable strip of date tiles, embedded directly in the dialogue (not a popup). Each tile shows a single date in DD/MM format (or MM/DD per the user's setting). The user scrolls left and right to find a date and taps a tile to select it; the selected tile is highlighted. Today is the visual anchor, and tiles fade with distance from today to give the user a sense of how far they have scrolled. When the dialogue opens, the strip is centred on the task's own date if it has one, or on today if the task is undated, and it covers both past and future dates with a fast-forward affordance for crossing longer distances quickly.
 
-When the dialogue opens, the strip is **centred on the task's own date if it has one, or on today if the task is undated**. The strip spans roughly **one month into the past to twelve months into the future**, with a month-jump fast-forward affordance for crossing that range quickly. Around **five to seven tiles are visible at once** (to be finalised against a real screen at build time).
-
-A **"no date" tile** sits at the **left edge of the strip, before today**, and lets the user clear the date. It is visually distinct — **labelled as "no date" rather than merely greyed** — so it reads as a deliberate choice, not just another faded date tile.
+A **"no date" tile** at the left edge of the strip lets the user clear the date. It is visually distinct from the date tiles, so it reads as a deliberate choice rather than just another faded tile.
 
 The user needs this because the standard Android date picker (a calendar grid in a popup) is heavy for this app's purpose. Most date assignments in Taskflow are within a week or two of today, and a horizontal strip lets the user scrub through nearby dates as fast as their thumb. Embedding the picker in the dialogue keeps the editing flow continuous.
 
@@ -154,31 +147,24 @@ The user needs this because subtasks are sub-units of a parent task, not indepen
 
 ### Parent tasks expand/collapse instead of having a checkbox
 
-A parent task (one with subtasks) does not have a checkmark on Schedule screens or in the Project view. Where the checkmark would be, there is an expand/collapse control. Tapping it reveals the parent's subtasks inline beneath the parent on the current screen, indented. Tapping it again hides them. Tapping the parent's title (not the expand control) opens the edit dialogue. A parent is considered complete only when all its subtasks are complete; completing the last subtask completes the parent and sends it to the Completed tray (see below). Un-completing any subtask un-completes the parent and brings it back out of the tray.
+A parent task (one with subtasks) has an expand/collapse control where its checkmark would otherwise be, rather than a checkmark of its own. Expanding it shows the parent's subtasks indented beneath it on the current screen. A parent's completion rolls up from its children: it is complete only when all its subtasks are complete, so completing the last subtask completes the parent and sends it to the Completed tray (see below), and un-completing any subtask brings the parent back out of the tray.
 
 The user needs this because manually checking a parent while subtasks remain open creates an obvious state mismatch. Driving completion from the children up makes the parent's completion state derivable rather than user-entered.
 
 ### Edit dialogue: outliner-style typing for subtasks
 
-Inside the edit dialogue, a task and its subtasks are rendered as a small outliner — the parent task's title on the top line, child task titles indented beneath. The text area behaves like a normal paragraph editor:
-
-- Pressing **Enter** at the end of a line creates a new line below it. A new line typed below the parent becomes a child of that parent.
-- Pressing **Backspace** at the start of a line deletes that line and merges its remaining text into the end of the previous line — the same behaviour as in any paragraph editor. The previous line can be the parent or a sibling child.
-
-Each child line has a drag handle on its left edge (the parent line does not — only subtasks have handles). Dragging a child by its handle reveals the drag-target icon row (see *Drag-target icons*); dropping the child on the **promote** icon promotes it to a top-level task at the bottom of the parent's slot or Project, with the parent's date (if any). If the parent ends up with zero children after a promotion, it stops being a parent and reverts to a checkbox.
+Inside the edit dialogue, a task and its subtasks are rendered as a small outliner — the parent task's title on the top line, child task titles indented beneath — and the text area behaves like a normal paragraph editor, so adding and restructuring subtasks happens through ordinary typing rather than a separate mode. A child can be promoted to a top-level task (via the promote drag target — see *Drag-target icons*); if a parent ends up with no children after a promotion, it reverts to an ordinary task with a checkbox.
 
 The user needs this because adding and breaking down subtasks are the highest-frequency edits a person makes when capturing work. Lifting subtask creation into the same gestures used for any text editing makes capturing a parent-with-children as fast as typing a paragraph. The promote target covers the natural follow-up — "actually this child should stand on its own" — without requiring a separate menu or mode.
 
 ### Drag-target icons
 
-Whenever the user picks up a task by drag (whether from a Schedule screen, a Project view, or inside an edit dialogue), a row of drag-target icons appears at the **top right** of the screen, fixed in place. The set of icons depends on context:
+Whenever the user picks up a task by drag (whether from a Schedule screen, a Project view, or inside an edit dialogue), a row of drag-target icons appears. The set depends on context:
 
-- **From a Schedule screen or a Project view:** a **bin** icon (delete the task) and a **cut** icon (remove the task from Taskflow and place its content on the device clipboard).
-- **From inside an edit dialogue (subtask only):** a **bin** icon, a **cut** icon, and a **promote** icon (the standard "list" Material icon with the arrow pointing up). Promote behaviour is described above.
+- **From a Schedule screen or a Project view:** a **bin** target (delete the task) and a **cut** target (remove the task from Taskflow and place its content on the device clipboard).
+- **From inside an edit dialogue (subtask only):** **bin**, **cut**, and **promote** targets. Promote behaviour is described above.
 
-When the user drags over a target icon, the icon visually responds — for example, growing slightly larger and gaining a shadow — so the user can see they have hit the right target before releasing.
-
-The cut/paste flow uses the **device's OS clipboard**, not a Taskflow-internal one. Dropping a task on **cut** removes it from Taskflow and writes its content to the OS clipboard as **plain text**. When the user cuts a parent, the whole set (parent plus all children) goes to the clipboard as a single block of indented multi-line plain text. Paste is only available **inside an edit dialogue** — the user long-presses inside any text field and chooses Paste from the device's standard context menu. The outliner editor interprets pasted text by line breaks and indentation: a multi-line indented block restored Taskflow-to-Taskflow round-trips its hierarchy. Pasting non-Taskflow text inserts that text as new lines per the same indentation rule. To create a new top-level task from a cut task, the user creates an empty new task via the FAB, opens its edit dialogue, and pastes there.
+The cut/paste flow uses the **device's OS clipboard**, not a Taskflow-internal one. Cutting a task removes it from Taskflow and writes its content to the clipboard as plain text; a parent and its children go as a single indented block. Pasting happens inside the edit dialogue through the device's normal paste, and the outliner restores the parent/child hierarchy from the indentation — so a Taskflow-to-Taskflow cut and paste round-trips its structure, and pasted non-Taskflow text comes in as new lines by the same rule.
 
 **Risk accepted:** if the OS clipboard is overwritten between cut and paste (e.g., by another app copying a notification number), the cut task is lost permanently. The user has accepted this trade-off in exchange for the simplicity of using the device's native clipboard.
 
@@ -186,9 +172,9 @@ The user needs this because the operations Taskflow exposes on a dragged task (d
 
 ### Completed task tray on Today
 
-At the bottom of the Today screen is a greyed-out, scrollable list of completed tasks. When the user checks off any task on any Schedule screen or in any Project view, that task moves to the bottom of this tray. Tapping a completed task in the tray opens its edit dialogue, where the user can uncheck individual subtasks (which un-completes the parent and removes it from the tray) or otherwise modify the task.
+At the bottom of the Today screen is a greyed-out list of completed tasks. When the user checks off any task on any Schedule screen or in any Project view, it joins this tray. Tapping a completed task in the tray opens its edit dialogue, where the user can uncheck individual subtasks (which un-completes the parent and removes it from the tray) or otherwise modify the task.
 
-Completed tasks stay in the tray until the **day-begins-at rollover** (see *Settings → Day begins at*), at which point the tray clears — each new day starts with a fresh, empty tray.
+Completed tasks stay in the tray until the **day-begins-at rollover** (see *Settings → Day begins at*), at which point the tray clears — each new day starts with a fresh, empty tray. Clearing the tray does not delete the tasks: completed tasks are retained and persist in the database; they only leave the tray view.
 
 The user needs this because seeing what they have already done provides a sense of progress, and routing all completions through one tray (rather than letting them disappear from each screen individually) gives the user one place to find and undo a mis-tapped completion.
 
@@ -196,7 +182,7 @@ The user needs this because seeing what they have already done provides a sense 
 
 The first time the user opens Taskflow, a short onboarding flow runs:
 
-- **Two cards making the Schedule / Project distinction explicit.** "Schedule is where you commit — when, what's next." "Projects are where you dream — what's possible, no time pressure."
+- **Two cards making the Schedule / Project distinction explicit.** One frames Schedule as where the user commits to what's next; the other frames Projects as where the user keeps what's possible, with no time pressure.
 - **A multi-page video demonstrating the AI value.** What the paid tier with Claude unlocks in practice.
 - **Two choices at the end.** *Skip AI for now (free)* or *How do I set up Claude?*. If the user chooses Claude setup, a follow-up screen explains they need a Claude account and deep-links into Anthropic's add-custom-connector modal where possible.
 - **An X-in-corner escape hatch at any point** drops the user into no-AI mode (free tier).

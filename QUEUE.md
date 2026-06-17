@@ -16,28 +16,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**SPEC.md trim — relocate exhaustive UI detail to batch specs** **[spec-edit-trim]**
-
-Output of the SPEC-trim audit (2026-06-17). SPEC.md had drifted into exhaustive UI/implementation mechanics that belong in build batches, not in product truth. This batch trims those passages to concept-level — keeping the concept in SPEC and leaving the detail in each feature's archived batch spec, which already holds it. It also reconciles SPEC's intro (which mandated the very detail being trimmed), removes one jargon leak, dedupes a thrice-stated rule, and folds in the completed-task retention decision. Findings F3, F4, and F18 are held back: they sit in the Schedule-view and side-menu sections that the parked [nav-zoom-spine-and-completed-history] redesign will rewrite, so trimming them now would just be redone.
-
-Spec-edit:
-- F1 — Reword the intro (lines 3–5): SPEC describes what each feature is, how the user experiences it, and why — product truth, not "every UI element." Exhaustive UI mechanics are build decisions recorded in each batch's spec.
-- F5 — Trim the Project-view card scroll-bounding mechanic (line 83) to the concept: the card must not crowd out the unscheduled list. Keep collapsed-by-default and read-only ordering.
-- F6, F7 — Trim drag gesture mechanics and exact per-drop date results (lines 104, 106–109) to the concept: dragging between Schedule screens reschedules. (Day-threshold numbers stay in the data model per F2.)
-- F8, F9, F10 — Trim date-picker fade mechanics, strip dimensions, and no-date-tile styling (lines 141, 143, 145) to the concept: a horizontal date strip with a no-date clearing tile. Remove the "to be finalised against a real screen at build time" placeholder (F9), which breaks SPEC's own no-placeholder rule.
-- F11, F12 — Trim parent tap mechanics and outliner keystroke mechanics (lines 157, 165–168) to the concept: subtasks expand/collapse and roll up completion; they're edited as an outliner; promote exists.
-- F13 — Trim drag-target-icon placement and hover feedback (lines 174–179) to the concept: a context-dependent set of drag targets appears when a task is picked up.
-- F14 — Trim the cut/paste OS-clipboard flow mechanics (line 181) to the concept. Keep the OS-clipboard decision and the risk-accepted paragraph.
-- F15 — Replace the `projectId` null jargon (lines 124, 126) with "Project defaults to unassigned."
-- F16 — Trim the tray "moves to the bottom" / "scrollable" mechanics (line 189) to the concept. Add a clarifying line: completed tasks are retained (not deleted) when the tray clears at rollover — they persist in the database. (Carried from the tray-fate decision; batch 0005 builds against this.)
-- F17 — Trim the exact onboarding card copy (line 199) to the concept: two cards make the Schedule/Project distinction.
-- F19 — Keep the date-set-moves-the-task rule once, in §Move between Schedule and Project; reduce the data-model (line 41) and edit-dialogue (line 135) restatements to short cross-references.
-- F20 — No SPEC edit. Leave the §Tasks dated before today help wording as-is; note the overlap with the parked Help-content capture for coordination when batch 0022 is built.
-
-Build:
-- Edit SPEC.md per the Spec-edit entries above (files: SPEC.md).
-- For each relocated finding, verify the detail already lives in the target archived spec under archive/backlog-specs/ (0004, 0005, 0006, 0008, 0009, 0010, 0011, 0016); backfill any gap. Confirmed gap: F9's strip dimensions are missing from 0006.
-
 - **0002 — schedule-view-date-derived-placement** — Four swipeable Schedule screens with date-derived task placement.
 - **0003 — side-menu-schedule-projects-app-actions** — Side drawer with Schedule, Projects, and app-action sections.
 - **0004 — project-view** — Project screen with scheduled-tasks card and undated-tasks list.
