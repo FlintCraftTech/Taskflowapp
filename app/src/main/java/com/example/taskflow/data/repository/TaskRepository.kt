@@ -17,6 +17,8 @@ class TaskRepository(private val taskDao: TaskDao) {
 
     fun observeById(id: Long): Flow<Task?> = taskDao.observeById(id)
 
+    fun observeActiveTopLevel(): Flow<List<Task>> = taskDao.observeActiveTopLevel()
+
     fun getTasksBySlot(slot: ScheduleSlot): Flow<List<Task>> = taskDao.getTasksBySlot(slot)
 
     fun getTasksByDate(date: Long): Flow<List<Task>> = taskDao.getTasksByDate(date)

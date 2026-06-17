@@ -28,6 +28,13 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id")
     fun observeById(id: Long): Flow<Task?>
 
+    // All active (incomplete) top-level tasks, ordered by slot_sort_order. The Schedule view
+    // buckets these into Today/Tomorrow/Soon/Later by deriving each dated task's slot from its
+    // date (see SlotDeriver), plus undated tasks parked on a slot. One query keeps bucketing in
+    // one place rather than spreading date-range logic across SQL.
+    @Query("SELECT * FROM tasks WHERE parent_id IS NULL AND is_completed = 0 ORDER BY slot_sort_order ASC")
+    fun observeActiveTopLevel(): Flow<List<Task>>
+
     // Schedule queries — tasks by slot, ordered by slot_sort_order
     @Query("SELECT * FROM tasks WHERE slot = :slot AND parent_id IS NULL ORDER BY slot_sort_order ASC")
     fun getTasksBySlot(slot: ScheduleSlot): Flow<List<Task>>
