@@ -16,7 +16,7 @@ These inform every design decision. Entries below should serve one or more of th
 
 2. **Local-first source of truth.** Taskflow's own Room database is the source of truth for everything: tasks, Projects, the Strategy doc, ordering. No syncing to or importing from external task apps. Android Auto Backup (the OS-level feature) and an explicit JSON export/import screen handle portability for free-tier users. Cloud sync exists only as the paid tier and is the precondition for Claude integration.
 
-3. **Time horizon, not list, structures execution.** The four Schedule slots — Today, Tomorrow, Soon, Later — map onto how attention naturally scales with time. Splitting them into discrete swipeable screens (rather than one infinite scroll) makes each horizon a bounded, glanceable thing. Projects answer different questions ("what's possible?", "where does this belong?") and are reached via the side menu and from inside a task's edit dialogue. Projects are not slices of the day.
+3. **Time horizon, not list, structures execution.** The four Schedule slots — Today, Tomorrow, Soon, Later — map onto how attention naturally scales with time, and they are the left segment of a single left-to-right navigation spine that extends rightward into Projects and Strategy. Splitting the slots into discrete bounded pages (rather than one infinite scroll) makes each horizon a glanceable thing. The spine reflects zoom levels of time: a day is the finest grain, weeks are coarser, and past about a week time stops being the useful frame — so navigation glides from arranging time into arranging Projects and Strategy rather than forcing everything onto a clock. Projects answer different questions ("what's possible?", "where does this belong?") and are reachable by swiping along the spine, not only via the side menu and from inside a task's edit dialogue. Projects are not slices of the day.
 
 4. **No-shame zone.** Taskflow does not name, count, or visually pressure tasks that have slipped past their date. They simply remain on Today, in the order the user placed them, until the user does them or moves them. The app has no "overdue" label or category — the help docs describe the behaviour without naming it as a category at all.
 
@@ -48,11 +48,11 @@ The user needs this because Projects answer "where does this belong?" while Sche
 
 ### Schedule view
 
-The four Schedule slots — **Today**, **Tomorrow**, **Soon**, **Later** — are presented as four discrete swipeable screens, navigated by horizontal swipe in the manner of a phone home screen. Each screen shows the tasks placed on that slot. Today is the default open screen. Project membership is not visible at this level; the only place a task's Project is visible during execution is inside its edit dialogue.
+The four Schedule slots — **Today**, **Tomorrow**, **Soon**, **Later** — are the four leftmost pages on a single horizontal navigation spine that continues rightward into a Projects page and a Strategy page (see *Projects overview* and *Side menu*). The user swipes between adjacent pages; Today is the default open page. Each page shows the tasks placed on that slot. Project membership is not visible at this level; the only place a task's Project is visible during execution is inside its edit dialogue.
 
-Each task on Tomorrow, Soon, and Later shows its date (when the task has one) inline on the right edge of the row in **DD/MM** format (or **MM/DD** if the user has selected that in Settings — see *Settings → Date format*). Today's tasks do not show a DD/MM label except when the date is in the past (then the date communicates how stale the task is). If the task title is too long to fit alongside the date, the row wraps to multi-line; the date stays right-aligned at the top of the wrap.
+Each task on Tomorrow, Soon, and Later shows its date (when the task has one) in **DD/MM** format (or **MM/DD** if the user has selected that in Settings — see *Settings → Date format*). Today's tasks do not show a date label except when the date is in the past, where the date communicates how stale the task is.
 
-**At the day-begins-at boundary** (see *Settings → Day begins at*), Tomorrow's tasks roll into Today, appended to the bottom of Today's list, in their existing relative order from Tomorrow. Today's tasks that did not get completed simply remain on Today in the order the user placed them — they do not move to the top, they do not gain a label, they do not change appearance. They are just still there.
+**At the day-begins-at boundary** (see *Settings → Day begins at*), Tomorrow's tasks roll into Today with no label, no reordering, and no shame. Today's tasks that did not get completed simply remain on Today in the order the user placed them — they do not move to the top, they do not gain a label, they do not change appearance. They are just still there.
 
 The user needs this because execution lives in a single time continuum. While executing, the user wants to see what they have committed for now, next, this week, and beyond — sliced by attention horizon, not by category. The "still there from before" behaviour is deliberate (UX principle 4): a task that slips past its date should not become a daily reminder of failure.
 
@@ -70,11 +70,11 @@ A task whose date is in the past stays on Today, in the position the user placed
 
 The user needs this because a no-shame zone (UX principle 4) means refusing to dramatize the past. Most "overdue" UI exists to nag the user; nagging is exactly the failure mode this app is built to avoid.
 
-### Projects in the side menu
+### Projects overview
 
-A side menu, opened from the left edge, lists the user's Projects. Tapping a Project opens its Project view. The Projects section is visible by default, even when empty — its empty state explains what Projects are for, doing pedagogical work for new users without requiring an onboarding step.
+Swiping right past Later along the navigation spine reaches the **Projects overview**: a full-page list of the user's Projects — the same list the side menu shows, in the same order. Tapping a Project opens its Project view. The page right of Projects on the spine is the Strategy doc.
 
-The user needs this because Projects are a primary navigation surface, not a buried feature, but they are a different question from "what's next?" and belong off the swipeable Schedule screens (UX principle 3).
+The user needs this because Projects are a primary navigation surface reachable directly on the spine, not only through the side menu — the spine's rightward end is where arranging time gives way to arranging Projects (UX principle 3). Projects answer a different question from "what's next?", so they sit past the Schedule slots rather than among them.
 
 ### Project view
 
@@ -216,7 +216,7 @@ The Strategy doc is a single document that lives above Projects in the structure
 
 The doc reads roughly as a chronological-by-priority piece — for example, *"this Project is prioritised above all else,"* *"this Project is for in about six months' time after Project B is completed,"* *"this Project is indefinitely postponed"* — with the user composing the paragraphs under each Project's auto-generated heading.
 
-The doc is reachable from the side menu — a single calm row at the top of the Projects section, above the individual Projects — but is not foregrounded in everyday navigation; Taskflow still presents primarily as a task app.
+The doc is reachable from the side menu — a single calm row after the projects list, at the spine's right end — but is not foregrounded in everyday navigation; Taskflow still presents primarily as a task app.
 
 **On the free tier**, the user edits the descriptions directly in an in-app markdown editor; structure (headings + order) is auto-managed. There is no Claude reconciliation.
 
@@ -254,13 +254,11 @@ The user needs this because date conventions vary by region and Taskflow ships w
 
 ### Side menu
 
-A side menu opens from the left edge with three sections:
+A side menu opens from the left edge as a single navigation list that mirrors the spine from top to bottom: **Today**, **Tomorrow**, **Soon**, **Later**, then the user's **Projects** in the order the user has placed them, then a single calm row for the **Strategy doc**. Tapping any entry opens that page. The Projects list is visible even when empty — its empty state explains what Projects are for, doing pedagogical work for new users without requiring an onboarding step. Reordering Projects here also reorders the corresponding heading-and-paragraph pairs in the Strategy doc (see *Strategy doc*).
 
-- **Top section — Schedule.** Today, Tomorrow, Soon, Later. Tapping a slot opens that screen.
-- **Middle section — Projects.** At the very top of this section sits a single row for the **Strategy doc**, above the individual Projects — a calm, understated row that is reachable but never foregrounded. Tapping it opens the Strategy doc. Beneath it come the user's Projects, in the order the user has placed them. Tapping a Project opens its Project view. The Projects list is visible even when empty (the empty state explains what Projects are for). Reordering Projects here also reorders the corresponding heading-and-paragraph pairs in the Strategy doc (see *Strategy doc*).
-- **Bottom section — App actions.** Pinned to the bottom of the drawer, separated from the navigation: **Settings**, **Help**, **Thanks**, and **Report a bug**, plus a "turn on AI for the full experience" entry that re-triggers the AI choice flow on the free tier.
+Pinned to the bottom of the drawer, separated from the navigation list, are the **app actions**: **Settings**, **Help**, **Thanks**, and **Report a bug**, plus a "turn on AI for the full experience" entry that re-triggers the AI choice flow on the free tier.
 
-The user needs this because the four Schedule screens and the Projects list are both primary navigation surfaces and need to be reachable in one tap, but they are different questions and belong in their own sections. App-level actions belong off the Schedule and Project surfaces (which should be only about tasks) and the bottom of the menu is the obvious place for them.
+The user needs this because the menu gives one-tap reach to every page on the spine, in spine order, while the things that are not spine pages — app-level actions — sit apart at the bottom where Android users expect them, off the task surfaces.
 
 ### No notifications in v1
 
