@@ -12,6 +12,15 @@ Worked top to bottom. Each batch is one /next session. Subheadings name the kind
 
 The detailed original spec for each build batch is archived at `archive/backlog-specs/` — the filename matches the batch number/slug. These came from the old folder-based backlog; the entry below is the summary, the archived file is the full spec.
 
+### Test
+
+**ProjectDao instrumentation tests — run and record** **[projectdao-instrumentation-tests]**
+
+Six ProjectDao instrumentation tests were written in batch 0001 alongside the TaskDao tests but were never run or recorded — they have no TEST-LOG rows. They cover the Project-storage half of the data foundation: create, update, delete, ordered retrieval, reorder persistence, and max-sort-order. The TaskDao half was verified last session (taskdao-instrumentation-tests, 10/10 pass); this batch closes the gap on the Project half. They're runnable now — the build compiles, the Pixel 6 connects over wireless adb, and the full `ProjectDaoTest` class runs in about 90 seconds.
+
+Test:
+- [Claude, on the connected Pixel 6] Run the six `ProjectDaoTest` instrumentation tests via `connectedDebugAndroidTest` (class-filtered to `ProjectDaoTest`). Record each as a new TEST-LOG row (#012–017), session tag 0001, component ProjectDao: `createProject_isRetrievable`, `updateProject_changesArePersisted`, `deleteProject_isRemoved`, `getAllOrdered_returnsSortedBySortOrder`, `reorderProjects_persistedOrderChanges`, `getMaxSortOrder_returnsCorrectValue`. Pass if the test passes; Fail with notes otherwise.
+
 ### Build
 
 - **0003 — side-menu-schedule-projects-app-actions** — Side drawer as a single navigation list mirroring the spine (Today · Tomorrow · Soon · Later · projects list · Strategy) with app-actions pinned at the bottom, plus the Projects overview spine page. Builds against revised SPEC §Side menu; supersedes the archived spec's three-section framing and the Strategy-row-at-top placement.
@@ -58,8 +67,6 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
-
-- **ProjectDaoTest has six instrumentation tests never run or recorded.** They were written in batch 0001 alongside the TaskDao tests but have no TEST-LOG rows. They cover Project create, update, delete, ordered retrieval, reorder persistence, and max-sort-order. The TaskDao half of the data foundation was just verified (taskdao-instrumentation-tests session, 10/10 pass); these would verify the Project-storage half. They're runnable now — the build compiles, the Pixel 6 connects over wireless adb, and the full run takes about 90 seconds. A /plan session could promote these into a short test batch and add TEST-LOG rows. Surfaced while reading the androidTest sources during the taskdao-instrumentation-tests session.
 
 ### Parked
 
