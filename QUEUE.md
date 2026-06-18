@@ -14,7 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-- **0003 — side-menu-schedule-projects-app-actions** — Side drawer as a single navigation list mirroring the spine (Today · Tomorrow · Soon · Later · projects list · Strategy) with app-actions pinned at the bottom, plus the Projects overview spine page. Builds against revised SPEC §Side menu; supersedes the archived spec's three-section framing and the Strategy-row-at-top placement.
 - **0004 — project-view** — Project screen with scheduled-tasks card and undated-tasks list (internal layout unchanged by the spine). Now also reached via the Projects spine page, not only the side menu.
 - **0005 — add-task-and-edit-task-minimum-viable** — FAB add, edit dialogue, tap-to-complete, completed tray.
 - **0006 — side-scrolling-date-picker** — Horizontal date strip replacing read-only date display in edit dialogue.
@@ -58,6 +57,12 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
+
+- **Spine header polish — two issues carried from batch 0002 (the ScheduleScreen header).** Both surfaced on-device while verifying 0003, and both pre-date this batch — 0003 only renamed the header code to span the new Projects page.
+  1. *Title overlaps moving backward (e.g. Soon → Tomorrow).* The page name animates with a slide — the outgoing word slides out as the incoming slides in, both crossing the same centred frame (`AnimatedSpineTitle` / `AnimatedContent` in `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleScreen.kt`). Going backward, "Soon" doesn't clear fast enough and overlaps "Tomorrow" mid-transition. Fix idea: stagger the slide so the outgoing word leaves before the incoming arrives, or speed up / fade the exit.
+  2. *Arrows should be Material chevron icons, not text glyphs.* The ←/→ are plain text characters (`Chevron` composable, same file); they render small and sit low because a text glyph aligns to its baseline, not the row centre. Alex wants proper Material chevrons, vertically centred with the title. Note: Material icons aren't a current dependency — this likely needs adding `androidx.compose.material` material-icons (KeyboardArrowLeft/Right are in core; the chevron pair is in extended) plus an `app/build.gradle.kts` edit.
+
+  Best handled as one small header-polish pass.
 
 ### Parked
 

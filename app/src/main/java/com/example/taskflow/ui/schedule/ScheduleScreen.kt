@@ -5,7 +5,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,47 +30,42 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskflow.TaskflowApplication
-import com.example.taskflow.data.model.ScheduleSlot
+import com.example.taskflow.data.model.Project
+import com.example.taskflow.ui.navigation.SpinePage
+import com.example.taskflow.ui.projects.ProjectsOverviewContent
 import kotlinx.coroutines.launch
 
 /**
- * The Schedule view: the four slots (Today, Tomorrow, Soon, Later) as the left segment of the
- * left-to-right navigation spine (SPEC §Schedule view, UX principle 3). Today is the default open
- * page; swiping moves between adjacent pages. Later batches extend the spine rightward into the
- * Projects overview and Strategy pages — this batch builds only the schedule segment.
+ * The navigation spine: the four Schedule slots (Today, Tomorrow, Soon, Later) then the Projects
+ * overview, as a left-to-right HorizontalPager (SPEC §Schedule view + §Projects overview, UX
+ * principle 3). Today is the default open page; swiping moves between adjacent pages, and the drawer
+ * can jump to any slot by driving the shared [pagerState].
  *
- * Header: only the current page's name is shown, centred in a fixed-width frame (as wide as the
- * longest label, "Tomorrow"), and it slides in the same direction as the page when you move. A
- * chevron sits immediately either side of the word to hint the spine swipes (and is tappable),
- * hidden at a dead end — no left chevron on the first page, no right on the last. The screen
- * corners are deliberately left clear for the side-menu key (top-left) and the pick-up delete
- * target (top-right), both added in later batches.
+ * Header: the current page's name, centred in a fixed-width frame (as wide as the longest label),
+ * sliding in the direction of travel, flanked by chevrons that hide at the spine's ends. The menu
+ * key sits in the top-left corner the layout leaves clear; the top-right corner stays clear for the
+ * pick-up delete target added in a later batch.
  */
-private val SLOTS: List<ScheduleSlot> = listOf(
-    ScheduleSlot.TODAY,
-    ScheduleSlot.TOMORROW,
-    ScheduleSlot.SOON,
-    ScheduleSlot.LATER,
-)
-
-/** The longest label — sizes the title frame so it doesn't resize as the word changes. */
-private val LONGEST_LABEL: String = SLOTS.maxByOrNull { it.displayName().length }!!.displayName()
-
 @Composable
-fun ScheduleScreen(modifier: Modifier = Modifier) {
+fun ScheduleScreen(
+    pagerState: PagerState,
+    onMenuClick: () -> Unit,
+    projects: List<Project>,
+    onProjectClick: (Project) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val app = context.applicationContext as TaskflowApplication
     val viewModel: ScheduleViewModel = viewModel(factory = ScheduleViewModel.factory(app.taskRepository))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    val pagerState = rememberPagerState(initialPage = 0) { SLOTS.size }
     val scope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxSize()) {
-        SlotHeader(
-            slot = SLOTS[pagerState.currentPage],
+        SpineHeader(
+            page = SpinePage.entries[pagerState.currentPage],
             hasPrevious = pagerState.currentPage > 0,
-            hasNext = pagerState.currentPage < SLOTS.lastIndex,
+            hasNext = pagerState.currentPage < SpinePage.entries.lastIndex,
+            onMenuClick = onMenuClick,
             onPrevious = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
             onNext = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
         )
@@ -82,40 +76,68 @@ fun ScheduleScreen(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .weight(1f),
         ) { page ->
-            val slot = SLOTS[page]
-            SlotPage(
-                slot = slot,
-                tasks = uiState.forSlot(slot),
-                modifier = Modifier.fillMaxSize(),
-            )
+            val slot = SpinePage.entries[page].slot
+            if (slot != null) {
+                SlotPage(
+                    slot = slot,
+                    tasks = uiState.forSlot(slot),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                ProjectsOverviewContent(
+                    projects = projects,
+                    onProjectClick = onProjectClick,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
 }
 
+/** The longest spine label — sizes the title frame so it doesn't resize as the word changes. */
+private val LONGEST_LABEL: String = SpinePage.entries.maxByOrNull { it.title.length }!!.title
+
 @Composable
-private fun SlotHeader(
-    slot: ScheduleSlot,
+private fun SpineHeader(
+    page: SpinePage,
     hasPrevious: Boolean,
     hasNext: Boolean,
+    onMenuClick: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
-        Chevron(glyph = "←", visible = hasPrevious, onClick = onPrevious)
-        AnimatedSlotTitle(slot = slot)
-        Chevron(glyph = "→", visible = hasNext, onClick = onNext)
+        // Menu key in the cleared top-left corner (SPEC §Side menu).
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(48.dp)
+                .clickable(onClick = onMenuClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "☰",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        // Centred current-page title flanked by chevrons.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Chevron(glyph = "←", visible = hasPrevious, onClick = onPrevious)
+            AnimatedSpineTitle(page = page)
+            Chevron(glyph = "→", visible = hasNext, onClick = onNext)
+        }
     }
 }
 
-/** The current slot name, in a fixed-width frame, sliding in the same direction as a page move. */
+/** The current page name, in a fixed-width frame, sliding in the same direction as a page move. */
 @Composable
-private fun AnimatedSlotTitle(slot: ScheduleSlot) {
+private fun AnimatedSpineTitle(page: SpinePage) {
     Box(contentAlignment = Alignment.Center, modifier = Modifier.clipToBounds()) {
         // Invisible widest label fixes the frame width so the title doesn't reflow per word.
         Text(
@@ -124,18 +146,18 @@ private fun AnimatedSlotTitle(slot: ScheduleSlot) {
             modifier = Modifier.alpha(0f),
         )
         AnimatedContent(
-            targetState = slot,
+            targetState = page,
             transitionSpec = {
-                // Forward (to a later slot): word leaves left, next enters from the right —
-                // the same direction the page content travels. Backward mirrors it.
+                // Forward (to a later page): word leaves left, next enters from the right — the same
+                // direction the page content travels. Backward mirrors it.
                 val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
                 slideInHorizontally { width -> dir * width }
                     .togetherWith(slideOutHorizontally { width -> -dir * width })
             },
-            label = "slotTitle",
+            label = "spineTitle",
         ) { current ->
             Text(
-                text = current.displayName(),
+                text = current.title,
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center,
             )
