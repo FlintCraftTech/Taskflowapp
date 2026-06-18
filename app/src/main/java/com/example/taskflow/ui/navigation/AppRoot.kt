@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskflow.TaskflowApplication
 import com.example.taskflow.ui.common.PlaceholderScreen
+import com.example.taskflow.ui.project.ProjectScreen
 import com.example.taskflow.ui.schedule.ScheduleScreen
 import kotlinx.coroutines.launch
 
@@ -83,6 +84,15 @@ fun AppRoot(modifier: Modifier = Modifier) {
                     onProjectClick = { project ->
                         overlay = Overlay.ProjectView(project.id, project.name)
                     },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                )
+            } else if (currentOverlay is Overlay.ProjectView) {
+                ProjectScreen(
+                    projectName = currentOverlay.label,
+                    projectId = currentOverlay.projectId,
+                    onBack = { overlay = null },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),

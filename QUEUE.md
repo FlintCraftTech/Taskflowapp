@@ -14,7 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-- **0004 — project-view** — Project screen with scheduled-tasks card and undated-tasks list (internal layout unchanged by the spine). Now also reached via the Projects spine page, not only the side menu.
 - **0005 — add-task-and-edit-task-minimum-viable** — FAB add, edit dialogue, tap-to-complete, completed tray.
 - **0006 — side-scrolling-date-picker** — Horizontal date strip replacing read-only date display in edit dialogue.
 - **0007 — recurring-tasks** — Recurrence rules and 30-day-capped instance rendering.
@@ -50,6 +49,8 @@ Planned tests that couldn't run in their own session. /plan rolls the runnable o
 
 - **Batch 0002 — Schedule view data-dependent rendering.** Needs tasks in the DB (no add path until 0005, or a manual DB seed). Verify on a device: dated tasks land in the correct slot (today + past on Today, tomorrow on Tomorrow, 2–7 days Soon, 8+ Later); past-dated tasks show on Today with a DD/MM date and no overdue label; Tomorrow/Soon/Later rows show their DD/MM date; a long task title wraps to multiple lines with the date staying top-right. (Render, Today-as-default, swipe + arrow-tap navigation, dead-end arrow hiding, and per-slot empty states were confirmed on a Pixel 6 on 2026-06-17.) Confirmed by: viewing seeded tasks on each page — runnable once 0005 lands a create path (or via a manual DB seed); Claude can run it then if a device is reachable.
 
+- **Batch 0004 — Project view rendering.** Needs a Project with dated and undated tasks in the DB (no add path until 0005, or a manual DB seed). Verify on a device: opening a Project shows its screen; the "Scheduled" card is collapsed by default and toggles on tap; expanded, it lists the Project's dated tasks with DD/MM labels in Schedule order and is height-bounded so it scrolls internally without crowding out the list below; the below-card undated list renders in per-Project order; and the three empty states render (no tasks at all; dated-but-no-undated shows the card plus a "no unscheduled tasks" line; undated-but-no-dated shows just the list with no card). Confirmed by: viewing a seeded Project on a device — runnable once 0005 lands a create path (or via a manual DB seed); Claude can run it then if a device is reachable.
+
 ## Captures
 
 Captured outside /plan. Picked up and routed during the next /plan session.
@@ -63,6 +64,12 @@ Captured outside /plan. Picked up and routed during the next /plan session.
   2. *Arrows should be Material chevron icons, not text glyphs.* The ←/→ are plain text characters (`Chevron` composable, same file); they render small and sit low because a text glyph aligns to its baseline, not the row centre. Alex wants proper Material chevrons, vertically centred with the title. Note: Material icons aren't a current dependency — this likely needs adding `androidx.compose.material` material-icons (KeyboardArrowLeft/Right are in core; the chevron pair is in extended) plus an `app/build.gradle.kts` edit.
 
   Best handled as one small header-polish pass.
+
+- **Task reorder-by-drag has no batch home — surfaced deferring 0004 (2026-06-18).** SPEC §Project view says the below-card undated list is "fully reorderable within the Project," and SPEC §Reorder within a Schedule slot says Schedule rows reorder by drag too. Both are *within-list* drag-reorder of top-level tasks. Neither has a dedicated batch: 0008 is cross-slot reschedule (drag a task to a *different* slot), 0010 is subtask/outliner drag, and 0011 is cut-and-paste — none cover reordering top-level tasks inside one slot or one Project.
+
+  The data layer already supports it (`TaskDao.updateProjectSortOrder` / `updateSlotSortOrder` / `getMax…SortOrder` exist; reorder persistence was DAO-tested in 0001). What's missing is the drag-reorder UI. 0004 was built render-only (this session), so its below-card list shows in `project_sort_order` but can't be reordered yet; 0002's Schedule view deferred the same.
+
+  Why captured: completion-from-card has a clear home in 0005, but within-list reorder-by-drag is genuinely unowned — without a batch it silently never ships. The two cases (Schedule slot, Project below-card) likely share one drag-reorder batch. For /plan to place.
 
 ### Parked
 

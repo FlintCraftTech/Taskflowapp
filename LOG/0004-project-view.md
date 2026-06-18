@@ -1,0 +1,14 @@
+# [HASH] — Project view (batch 0004) — built the Project screen (new `ui/project/` — ProjectScreen + ProjectViewModel) replacing the placeholder overlay: a collapsible "currently scheduled" card (collapsed by default, dated tasks in read-only Schedule order) over a below-card list of undated tasks, with three plain empty states; render-only per the 0002/0003 pattern, with completion-from-card deferred to 0005 and within-list drag-reorder deferred (captured, no batch home yet).
+
+0004's archived spec was a stub (Goal/Outputs/Success unfilled, and it named the old "UX.md"), but SPEC §Project view carries complete product truth — including the resolved "card collapsed by default, expanding is opt-in" decision — so the build worked from SPEC.
+
+The batch text describes two interactions — completing a task from the card, and full drag-reorder of the below-card list — that the build sequence hasn't laid groundwork for. We weighed building them now against rendering only. Render-only won, for three reasons: it matches how 0002 (Schedule view) and 0003 (side menu) were built — screens first, interactions in dedicated later batches; completion feeds the completed tray, which is built in 0005 (the very next batch), so building it here would be half a feature, inconsistent with Schedule rows that still can't complete; and within-list drag-reorder is net-new UI with no groundwork and — unlike completion — no batch home anywhere in the queue, so it was captured for /plan to place rather than smuggled into this build.
+
+Implementation: a ProjectViewModel scoped per projectId combines the Project's dated and undated task flows (filtering completed so the card and list show active work only — matters once 0005 adds completion); the screen renders a collapsible "Scheduled · N" card (collapsed by default, height-bounded to 240dp when expanded so it can't crowd out the list below, per SPEC) over the below-card undated list, with three plain placeholder empty states matching the Schedule view's deliberately-plain style (final copy is the parked empty-state capture). AppRoot now routes Overlay.ProjectView to this screen instead of the placeholder. Text glyphs (▸/▾) rather than Material icons, since the icon pack still isn't a project dependency. Compile verified clean; on-device render check deferred to the queue (needs the 0005 add path or a manual DB seed), mirroring the 0002 Schedule-view check.
+
+**Files touched:**
+- app/src/main/java/com/example/taskflow/ui/project/ProjectViewModel.kt — created (~80 lines)
+- app/src/main/java/com/example/taskflow/ui/project/ProjectScreen.kt — created (~210 lines)
+- app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt — edited (import + Overlay.ProjectView branch)
+
+**Routed to Captures:** Task reorder-by-drag has no batch home (within-list reorder for both the Project below-card list and Schedule slots — for /plan to place).
