@@ -14,21 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Batch 0001 verification — TaskDao instrumentation tests** **[taskdao-instrumentation-tests]**
-
-The data foundation built in batch 0001 (how tasks, dates, Projects, and subtasks are stored) shipped with ten tests written but never run — first because the app didn't build, then because no device was connected. Both blockers are now gone: the build compiles (resolved 2026-06-16) and a Pixel 6 is connected by wireless adb (confirmed 2026-06-17). This batch runs those ten checks on the device to confirm the foundation holds before more features build on top of it. Rolled in from Deferred tests.
-
-Test (Claude-run, on the connected device):
-- Create a task with a date — it saves and reads back correctly.
-- Create a task with no date — it saves and reads back correctly.
-- Park an undated task on Soon, and on Later — placement persists.
-- Assign a task to a Project, then refile it to a different Project — the link updates.
-- Reorder tasks within a Schedule slot — the new order persists.
-- Reorder tasks within a Project — the new order persists.
-- Create a subtask under a parent — the parent/child link saves.
-- Complete all of a parent's subtasks — the parent rolls up to complete.
-- (Covers TEST-LOG rows #002–011.)
-
 - **0003 — side-menu-schedule-projects-app-actions** — Side drawer as a single navigation list mirroring the spine (Today · Tomorrow · Soon · Later · projects list · Strategy) with app-actions pinned at the bottom, plus the Projects overview spine page. Builds against revised SPEC §Side menu; supersedes the archived spec's three-section framing and the Strategy-row-at-top placement.
 - **0004 — project-view** — Project screen with scheduled-tasks card and undated-tasks list (internal layout unchanged by the spine). Now also reached via the Projects spine page, not only the side menu.
 - **0005 — add-task-and-edit-task-minimum-viable** — FAB add, edit dialogue, tap-to-complete, completed tray.
@@ -73,6 +58,8 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
+
+- **ProjectDaoTest has six instrumentation tests never run or recorded.** They were written in batch 0001 alongside the TaskDao tests but have no TEST-LOG rows. They cover Project create, update, delete, ordered retrieval, reorder persistence, and max-sort-order. The TaskDao half of the data foundation was just verified (taskdao-instrumentation-tests session, 10/10 pass); these would verify the Project-storage half. They're runnable now — the build compiles, the Pixel 6 connects over wireless adb, and the full run takes about 90 seconds. A /plan session could promote these into a short test batch and add TEST-LOG rows. Surfaced while reading the androidTest sources during the taskdao-instrumentation-tests session.
 
 ### Parked
 
