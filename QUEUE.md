@@ -14,7 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-- **0005 — add-task-and-edit-task-minimum-viable** — FAB add, edit dialogue, tap-to-complete, completed tray.
 - **0006 — side-scrolling-date-picker** — Horizontal date strip replacing read-only date display in edit dialogue.
 - **0007 — recurring-tasks** — Recurrence rules and 30-day-capped instance rendering.
 - **0008 — drag-task-between-schedule-screens** — Long-press drag to reschedule across Schedule slots.
@@ -51,6 +50,8 @@ Planned tests that couldn't run in their own session. /plan rolls the runnable o
 
 - **Batch 0004 — Project view rendering.** Needs a Project with dated and undated tasks in the DB (no add path until 0005, or a manual DB seed). Verify on a device: opening a Project shows its screen; the "Scheduled" card is collapsed by default and toggles on tap; expanded, it lists the Project's dated tasks with DD/MM labels in Schedule order and is height-bounded so it scrolls internally without crowding out the list below; the below-card undated list renders in per-Project order; and the three empty states render (no tasks at all; dated-but-no-undated shows the card plus a "no unscheduled tasks" line; undated-but-no-dated shows just the list with no card). Confirmed by: viewing a seeded Project on a device — runnable once 0005 lands a create path (or via a manual DB seed); Claude can run it then if a device is reachable.
 
+- **Batch 0005 — Add / edit / complete on-device.** Compile is clean; the runtime flows need a device. Verify on a device: the add FAB appears on the four Schedule slots and inside a Project view, and is absent on the Projects-overview page; adding from Today/Tomorrow creates a task dated today/tomorrow that lands on that slot; adding from Soon/Later parks an undated task on that slot; adding from a Project view files an undated task below that Project's card; a row tap opens the edit dialogue, and saving persists title/notes/Project changes (date shown read-only, with the "set in a later update" hint); checking a task's box completes it — it leaves its slot or Project list and appears in the Today completed tray (greyed, struck through); unchecking it in the tray returns it to its active surface; tapping a tray row opens its edit dialogue. Confirmed by: exercising the add/edit/complete flows on a device — runnable now (the add path exists, no DB seed needed); Claude can run it if a device is reachable, else user-run. NOTE: 0005 also satisfies the "no add path until 0005" precondition on the batch-0002 and batch-0004 deferred tests above — all three are now device-runnable and can roll into one test batch at /plan.
+
 ## Captures
 
 Captured outside /plan. Picked up and routed during the next /plan session.
@@ -70,6 +71,8 @@ Captured outside /plan. Picked up and routed during the next /plan session.
   The data layer already supports it (`TaskDao.updateProjectSortOrder` / `updateSlotSortOrder` / `getMax…SortOrder` exist; reorder persistence was DAO-tested in 0001). What's missing is the drag-reorder UI. 0004 was built render-only (this session), so its below-card list shows in `project_sort_order` but can't be reordered yet; 0002's Schedule view deferred the same.
 
   Why captured: completion-from-card has a clear home in 0005, but within-list reorder-by-drag is genuinely unowned — without a batch it silently never ships. The two cases (Schedule slot, Project below-card) likely share one drag-reorder batch. For /plan to place.
+
+- **SPEC §Add a new task says "from any screen" but the build adds no FAB on the Projects-overview spine page (surfaced by the /done spec-drift check on batch 0005).** Building 0005, the add FAB went on the four Schedule slots and inside a Project view — exactly the contexts SPEC §Add enumerates (Today/Tomorrow → dated, Soon/Later → parked, Project view → filed undated). The Projects-overview page (right of Later) is not one of those contexts, and a task added there would carry no date, no slot, and no Project, so it would be invisible on every surface. The build therefore hides the FAB on that page. This leaves SPEC §Add's opening "from any screen via a floating action button" literally broader than what shipped. For /plan to resolve, as a spec-edit: either tighten SPEC §Add's wording to name the real add surfaces (the four slots + a Project view), or define what add-from-Projects-overview should do (e.g. open the editor for an undated, unassigned task the user must then file).
 
 ### Parked
 

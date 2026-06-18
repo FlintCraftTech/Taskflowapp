@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -35,16 +36,16 @@ data class ProjectUiState(
  * (ordered by their Schedule position via the DAO's `slot_sort_order` sort) for the top card, and its
  * *undated* tasks (in `project_sort_order`) for the below-card list — SPEC §Project view.
  *
- * Read-only for batch 0004 (render-only): completing from the card arrives with 0005, and below-card
- * drag-reorder is captured for a later batch. Completed tasks are filtered out here so the card and
- * list show active work only — the completed tray is 0005's; until then nothing can be completed via
- * the UI, but a manual DB seed could carry completed rows, so the filter keeps the render correct.
+ * Batch 0005 adds completion: [setCompleted] flips a task's state, and the filter below drops
+ * completed tasks from both the card and the below-card list — completing a task in a Project view
+ * removes it here and routes it to the Today tray (SPEC §Completed task tray on Today). Below-card
+ * drag-reorder is still captured for a later batch.
  *
  * The date label uses DD/MM (SPEC default); batch 0013 adds the MM/DD setting. [zone] is injectable
  * so label formatting can be tested without a device.
  */
 class ProjectViewModel(
-    taskRepository: TaskRepository,
+    private val taskRepository: TaskRepository,
     projectId: Long,
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) : ViewModel() {
@@ -61,6 +62,11 @@ class ProjectViewModel(
                 undatedTasks = undated.filterNot { it.isCompleted }.map { it.toUi(withDate = false) },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectUiState())
+
+    /** Complete or un-complete a task from the card or the below-card list (SPEC §Completed tray). */
+    fun setCompleted(taskId: Long, isCompleted: Boolean) {
+        viewModelScope.launch { taskRepository.updateCompletion(taskId, isCompleted) }
+    }
 
     private fun Task.toUi(withDate: Boolean): ProjectTaskUi =
         ProjectTaskUi(

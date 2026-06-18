@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskflow.TaskflowApplication
 import com.example.taskflow.ui.common.PlaceholderScreen
+import com.example.taskflow.ui.edit.EditTarget
+import com.example.taskflow.ui.edit.EditTaskScreen
 import com.example.taskflow.ui.project.ProjectScreen
 import com.example.taskflow.ui.schedule.ScheduleScreen
 import kotlinx.coroutines.launch
@@ -41,10 +46,15 @@ fun AppRoot(modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(initialPage = SpinePage.TODAY.ordinal) { SpinePage.entries.size }
     var overlay by remember { mutableStateOf<Overlay?>(null) }
+    // The edit dialogue sits above the spine and any overlay; it's its own state so closing it
+    // returns to whatever was underneath (a Project view, say) rather than the bare spine.
+    var editTarget by remember { mutableStateOf<EditTarget?>(null) }
 
-    // An open overlay catches the system back, returning to the spine. (When the drawer is open it
-    // owns back itself, so this only fires on the spine-with-overlay state.)
-    BackHandler(enabled = overlay != null) { overlay = null }
+    // System back closes the edit dialogue first, then an open overlay. (When the drawer is open it
+    // owns back itself, so this only fires on the spine-with-overlay-or-edit state.)
+    BackHandler(enabled = editTarget != null || overlay != null) {
+        if (editTarget != null) editTarget = null else overlay = null
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -74,9 +84,44 @@ fun AppRoot(modifier: Modifier = Modifier) {
         },
         modifier = modifier,
     ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        Scaffold(
+            floatingActionButton = {
+                // The add FAB (SPEC §Add a new task). It appears on the four Schedule slots and in a
+                // Project view — the surfaces whose context a new task can inherit — and is hidden
+                // over the Projects overview (no task home there), the placeholder overlays, and the
+                // edit dialogue itself.
+                val current = overlay
+                val slot = if (current == null) SpinePage.entries[pagerState.currentPage].slot else null
+                val showFab = editTarget == null && (current is Overlay.ProjectView || slot != null)
+                if (showFab) {
+                    FloatingActionButton(onClick = {
+                        editTarget = when {
+                            current is Overlay.ProjectView -> EditTarget.NewInProject(current.projectId)
+                            slot != null -> EditTarget.NewOnSlot(slot)
+                            else -> null
+                        }
+                    }) {
+                        // Text glyph rather than a Material icon — the icon pack isn't a dependency.
+                        Text(text = "+", style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxSize(),
+        ) { innerPadding ->
+            val currentEdit = editTarget
             val currentOverlay = overlay
-            if (currentOverlay == null) {
+            val contentModifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+            val openEditor: (Long) -> Unit = { taskId -> editTarget = EditTarget.Existing(taskId) }
+
+            if (currentEdit != null) {
+                EditTaskScreen(
+                    target = currentEdit,
+                    onClose = { editTarget = null },
+                    modifier = contentModifier,
+                )
+            } else if (currentOverlay == null) {
                 ScheduleScreen(
                     pagerState = pagerState,
                     onMenuClick = { scope.launch { drawerState.open() } },
@@ -84,26 +129,22 @@ fun AppRoot(modifier: Modifier = Modifier) {
                     onProjectClick = { project ->
                         overlay = Overlay.ProjectView(project.id, project.name)
                     },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    onTaskClick = openEditor,
+                    modifier = contentModifier,
                 )
             } else if (currentOverlay is Overlay.ProjectView) {
                 ProjectScreen(
                     projectName = currentOverlay.label,
                     projectId = currentOverlay.projectId,
                     onBack = { overlay = null },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    onTaskClick = openEditor,
+                    modifier = contentModifier,
                 )
             } else {
                 PlaceholderScreen(
                     title = currentOverlay.label,
                     onBack = { overlay = null },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier = contentModifier,
                 )
             }
         }

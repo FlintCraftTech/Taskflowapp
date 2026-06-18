@@ -52,6 +52,7 @@ fun ScheduleScreen(
     onMenuClick: () -> Unit,
     projects: List<Project>,
     onProjectClick: (Project) -> Unit,
+    onTaskClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -81,6 +82,9 @@ fun ScheduleScreen(
                 SlotPage(
                     slot = slot,
                     tasks = uiState.forSlot(slot),
+                    completed = uiState.completed,
+                    onToggleComplete = viewModel::setCompleted,
+                    onTaskClick = onTaskClick,
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {

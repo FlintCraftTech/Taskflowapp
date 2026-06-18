@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,6 +45,7 @@ fun ProjectScreen(
     projectName: String,
     projectId: Long,
     onBack: () -> Unit,
+    onTaskClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -59,7 +61,12 @@ fun ProjectScreen(
     Column(modifier = modifier.fillMaxSize()) {
         ProjectHeader(projectName = projectName, onBack = onBack)
         HorizontalDivider()
-        ProjectBody(state = uiState, modifier = Modifier.weight(1f))
+        ProjectBody(
+            state = uiState,
+            onToggleComplete = viewModel::setCompleted,
+            onTaskClick = onTaskClick,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -88,7 +95,12 @@ private fun ProjectHeader(projectName: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun ProjectBody(state: ProjectUiState, modifier: Modifier = Modifier) {
+private fun ProjectBody(
+    state: ProjectUiState,
+    onToggleComplete: (Long, Boolean) -> Unit,
+    onTaskClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     // Empty state #1: a Project with no tasks at all.
     if (state.datedTasks.isEmpty() && state.undatedTasks.isEmpty()) {
         EmptyMessage(
@@ -101,10 +113,19 @@ private fun ProjectBody(state: ProjectUiState, modifier: Modifier = Modifier) {
         // The card appears only when there are dated tasks; with none, an absent card is the
         // "nothing scheduled" state (empty state #3 — undated tasks but none dated).
         if (state.datedTasks.isNotEmpty()) {
-            ScheduledCard(tasks = state.datedTasks)
+            ScheduledCard(
+                tasks = state.datedTasks,
+                onToggleComplete = onToggleComplete,
+                onTaskClick = onTaskClick,
+            )
         }
         if (state.undatedTasks.isNotEmpty()) {
-            UndatedList(tasks = state.undatedTasks, modifier = Modifier.weight(1f))
+            UndatedList(
+                tasks = state.undatedTasks,
+                onToggleComplete = onToggleComplete,
+                onTaskClick = onTaskClick,
+                modifier = Modifier.weight(1f),
+            )
         } else {
             // Empty state #2: dated tasks in the card, but nothing unscheduled below it.
             EmptyMessage(
@@ -121,7 +142,11 @@ private fun ProjectBody(state: ProjectUiState, modifier: Modifier = Modifier) {
  * within the card so it can't crowd out the below-card list (SPEC §Project view).
  */
 @Composable
-private fun ScheduledCard(tasks: List<ProjectTaskUi>) {
+private fun ScheduledCard(
+    tasks: List<ProjectTaskUi>,
+    onToggleComplete: (Long, Boolean) -> Unit,
+    onTaskClick: (Long) -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -150,7 +175,7 @@ private fun ScheduledCard(tasks: List<ProjectTaskUi>) {
                 HorizontalDivider()
                 LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
                     items(tasks, key = { it.id }) { task ->
-                        TaskRow(task)
+                        TaskRow(task = task, onToggleComplete = onToggleComplete, onTaskClick = onTaskClick)
                         HorizontalDivider()
                     }
                 }
@@ -162,34 +187,51 @@ private fun ScheduledCard(tasks: List<ProjectTaskUi>) {
 
 /** The below-card list: this Project's undated tasks, in their per-Project order. */
 @Composable
-private fun UndatedList(tasks: List<ProjectTaskUi>, modifier: Modifier = Modifier) {
+private fun UndatedList(
+    tasks: List<ProjectTaskUi>,
+    onToggleComplete: (Long, Boolean) -> Unit,
+    onTaskClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(modifier = modifier.fillMaxSize()) {
         items(tasks, key = { it.id }) { task ->
-            TaskRow(task)
+            TaskRow(task = task, onToggleComplete = onToggleComplete, onTaskClick = onTaskClick)
             HorizontalDivider()
         }
     }
 }
 
+/** A Project task row: leading checkbox completes it; tapping the row opens its edit dialogue. */
 @Composable
-private fun TaskRow(task: ProjectTaskUi) {
+private fun TaskRow(
+    task: ProjectTaskUi,
+    onToggleComplete: (Long, Boolean) -> Unit,
+    onTaskClick: (Long) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .clickable { onTaskClick(task.id) }
+            .padding(end = 16.dp, top = 4.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.Top,
     ) {
+        // All Project tasks are active here (completed rows are filtered out) — so the box is always
+        // unchecked, and checking it completes the task and sends it to the Today tray.
+        Checkbox(checked = false, onCheckedChange = { checked -> onToggleComplete(task.id, checked) })
         Text(
             text = task.title,
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 12.dp),
         )
         if (task.dateLabel != null) {
             Text(
                 text = task.dateLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 12.dp),
             )
         }
     }

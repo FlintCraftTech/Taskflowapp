@@ -10,8 +10,9 @@ import com.example.taskflow.data.repository.TaskRepository
 import com.example.taskflow.domain.SlotDeriver
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -23,12 +24,15 @@ data class ScheduleTaskUi(
     val dateLabel: String?,
 )
 
-/** Per-slot lists for the four Schedule pages. */
+/** Per-slot lists for the four Schedule pages, plus the Today completed tray. */
 data class ScheduleUiState(
     val today: List<ScheduleTaskUi> = emptyList(),
     val tomorrow: List<ScheduleTaskUi> = emptyList(),
     val soon: List<ScheduleTaskUi> = emptyList(),
     val later: List<ScheduleTaskUi> = emptyList(),
+    // Completed top-level tasks, newest-completed-first is owned by 0012; for now query order.
+    // Rendered only at the bottom of Today (SPEC §Completed task tray on Today).
+    val completed: List<ScheduleTaskUi> = emptyList(),
 ) {
     fun forSlot(slot: ScheduleSlot): List<ScheduleTaskUi> = when (slot) {
         ScheduleSlot.TODAY -> today
@@ -39,14 +43,15 @@ data class ScheduleUiState(
 }
 
 /**
- * Exposes the four Schedule slots as derived, read-only lists. Read-only is deliberate for batch
- * 0002 — add, edit, drag, and completion arrive in later batches; this batch only renders.
+ * Exposes the four Schedule slots as derived lists plus the Today completed tray. Bucketing stays
+ * read-only/derived (batch 0002); batch 0005 adds completion — [setCompleted] flips a task's state,
+ * which the active/completed queries pick up so it leaves its slot and joins the tray (and back).
  *
  * [clock] and [zone] are injectable so the bucketing logic can be unit-tested without a device.
  * The date label uses DD/MM (SPEC default); batch 0013 adds the MM/DD setting.
  */
 class ScheduleViewModel(
-    repository: TaskRepository,
+    private val repository: TaskRepository,
     private val clock: () -> Long = System::currentTimeMillis,
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) : ViewModel() {
@@ -54,9 +59,19 @@ class ScheduleViewModel(
     private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM")
 
     val uiState: StateFlow<ScheduleUiState> =
-        repository.observeActiveTopLevel()
-            .map { tasks -> bucket(tasks, clock()) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScheduleUiState())
+        combine(
+            repository.observeActiveTopLevel(),
+            repository.getCompletedTasks(),
+        ) { active, completed ->
+            bucket(active, clock()).copy(
+                completed = completed.map { ScheduleTaskUi(id = it.id, title = it.title, dateLabel = null) },
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScheduleUiState())
+
+    /** Complete or un-complete a task — the source of both leaving a slot and joining the tray. */
+    fun setCompleted(taskId: Long, isCompleted: Boolean) {
+        viewModelScope.launch { repository.updateCompletion(taskId, isCompleted) }
+    }
 
     private fun bucket(tasks: List<Task>, now: Long): ScheduleUiState {
         val grouped = mutableMapOf<ScheduleSlot, MutableList<Task>>()
