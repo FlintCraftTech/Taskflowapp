@@ -1,4 +1,4 @@
-# [HASH] — /next test (aborted) — opened [device-verify-core-screens] to run the deferred 0002/0004/0005 device checks, found the batch's "FAB seeds everything" premise false, aborted and requeued it, and filed two captures (reshape direction + project-creation gap)
+# 604934a — /next test (aborted) — opened [device-verify-core-screens] to run the deferred 0002/0004/0005 device checks, found the batch's "FAB seeds everything" premise false, aborted and requeued it, and filed two captures (reshape direction + project-creation gap)
 
 This session opened the device-verification test batch to run the on-device checks deferred from batches 0002, 0004, and 0005, now that 0005 shipped a create path. The current post-0005 debug build was installed on a connected Pixel 6. Before any check ran, reading the add-flow code and pulling the device database showed the batch's core assumption — that the 0005 add-FAB could seed all the data the three checks need — is false in two independent ways.
 

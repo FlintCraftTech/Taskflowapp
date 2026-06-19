@@ -14,19 +14,66 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Test
 
-**Device verification — core screens (add / edit / complete + Schedule & Project rendering)** **[device-verify-core-screens]**
+**Device verification — core add/render/complete loop (runnable now)** **[device-verify-core-screens]**
 
-Batches 0002 (Schedule view), 0004 (Project view), and 0005 (add / edit / complete) each shipped render-only or compile-verified, with their on-device checks deferred — 0002 and 0004 had no create path to seed data, and 0005's runtime flows needed a device. 0005 landed the create path, so all three are now runnable together on one device: create tasks through the new FAB and confirm they render in the right Schedule slots and Project surfaces, edit them, and complete them into the Today tray. Running these as one batch verifies the core add → render → complete loop on real hardware before 0006 (date picker) and later batches build on an unverified foundation. Each check is an on-device manual verification — Claude can run it if a device is reachable, else user-run.
+Batches 0002 (Schedule view) and 0005 (add / edit / complete) shipped render-only or compile-verified, with their on-device checks deferred. 0005 landed the create path, so the FAB-reachable parts are now runnable on a device with no further build: create tasks through the FAB, confirm they land and render in the right Schedule slots, edit them, and complete them into the Today tray. This batch holds only the checks the FAB can seed today — the date-matrix render checks (dated Soon/Later/past) moved to Deferred tests behind 0006, and the Project checks moved into [project-create]'s verification, because neither's data can be created yet. Each check is an on-device manual verification — Claude can run it if a device is reachable, else user-run.
 
 Test:
-- **[0002] Schedule view data-dependent rendering.** Verify on a device: dated tasks land in the correct slot (today + past on Today, tomorrow on Tomorrow, 2–7 days Soon, 8+ Later); past-dated tasks show on Today with a DD/MM date and no overdue label; Tomorrow/Soon/Later rows show their DD/MM date; a long task title wraps to multiple lines with the date staying top-right. (Render, Today-as-default, swipe + arrow-tap navigation, dead-end arrow hiding, and per-slot empty states were confirmed on a Pixel 6 on 2026-06-17.) Confirmed by: viewing tasks added through the 0005 FAB on each page.
-- **[0004] Project view rendering.** Verify on a device: opening a Project shows its screen; the "Scheduled" card is collapsed by default and toggles on tap; expanded, it lists the Project's dated tasks with DD/MM labels in Schedule order and is height-bounded so it scrolls internally without crowding out the list below; the below-card undated list renders in per-Project order; and the three empty states render (no tasks at all; dated-but-no-undated shows the card plus a "no unscheduled tasks" line; undated-but-no-dated shows just the list with no card). Confirmed by: viewing a Project populated through the 0005 FAB.
-- **[0005] Add / edit / complete.** Verify on a device: the add FAB appears on the four Schedule slots and inside a Project view, and is absent on the Projects-overview page; adding from Today/Tomorrow creates a task dated today/tomorrow that lands on that slot; adding from Soon/Later parks an undated task on that slot; adding from a Project view files an undated task below that Project's card; a row tap opens the edit dialogue, and saving persists title/notes/Project changes (date shown read-only, with the "set in a later update" hint); checking a task's box completes it — it leaves its slot or Project list and appears in the Today completed tray (greyed, struck through); unchecking it in the tray returns it to its active surface; tapping a tray row opens its edit dialogue. Confirmed by: exercising the add/edit/complete flows on a device (no DB seed needed).
+- **[0002] Schedule rendering (FAB-reachable).** Verify on a device: a task added from Today lands on Today with no date label; a task added from Tomorrow lands on Tomorrow showing its DD/MM date; tasks added from Soon and Later park there undated (no date label); a long title wraps to multiple lines with any date staying top-right. (Render, Today-default, swipe/arrow navigation, dead-end arrow hiding, and per-slot empty states were confirmed on a Pixel 6 on 2026-06-17.) Confirmed by: adding tasks through the FAB on each page.
+- **[0005] Add / edit / complete (non-Project flows).** Verify on a device: the add FAB appears on the four Schedule slots and is absent on the Projects-overview page; adding from Today/Tomorrow creates a task dated today/tomorrow on that slot; adding from Soon/Later parks an undated task on that slot; a row tap opens the edit dialogue, and saving persists title and notes (date read-only); checking the box completes a task — it leaves its slot and joins the Today tray (greyed, struck through); unchecking in the tray returns it; tapping a tray row opens its edit dialogue. Confirmed by: exercising the flows on a device (no Project needed). (FAB-inside-a-Project, add-from-Project, refile-to-Project moved to [project-create].)
 
 ### Build
 
+**Project creation — spec-edit** **[project-create-spec-edit]**
+Blocks: [project-create]
+
+SPEC assumes Projects can be created — §Projects overview's empty state says "when you make one, it shows up here and in the menu" — but no section describes the gesture, and the build has no creation path at all. This spec-edit adds the manual creation behaviour so the feature batch builds against a described surface. Creation is name-only: the user enters a Project name on the Projects overview and it is appended to the Projects list, appearing in the same position in the side menu and the Strategy doc. No description is asked at creation — the description is the Strategy-doc paragraph, authored later in the Strategy editor (0015) or with Claude on the paid tier — so requiring it here would duplicate that editor and slow the add (UX principle 5, lightest capture). A new Project's Strategy paragraph appears automatically under the existing mechanical-structure rule, so no §Strategy-doc change is needed. This batch also folds in the §Add "from any screen" spec-drift filed during 0005: the add FAB shipped only on the four Schedule slots and inside a Project view, not on the Projects overview, so §Add's "from any screen" wording is broader than what shipped — the same Projects-overview surface this batch touches, so the wording fix rides here rather than in its own pass.
+
+Spec-edit:
+- SPEC §Projects overview: add that the page provides a way to create a new Project. Creating one asks only for a name; the new Project is appended to the end of the Projects list and shows in the same order in the side menu and Strategy doc. State that no description is captured here — it is the Strategy-doc paragraph, written later.
+- SPEC §Add a new task: the opening says the user adds a task "from any screen via a floating action button or equivalent affordance." Narrow "from any screen" to the real task-add surfaces the section already enumerates — the four Schedule slots and a Project view. Add that the Projects-overview page is not a task-add surface; its add affordance creates a Project (per the §Projects overview edit above).
+
+**Create a Project (manual) — Projects overview** **[project-create]**
+Depends on: [project-create-spec-edit]
+
+There is no way to create a Project in the build: the Projects overview and side menu only list existing ones, no UI calls `projectRepository.insert`, and the device DB stays empty — so the Project view, the Strategy doc, and Project-assignment in the task editor all have nothing to work with, and the deferred Project device-verification can't run. This batch adds the manual path: an add affordance on the Projects overview that asks for a name and creates the Project at the end of the Projects sort order, creating its empty Strategy entry alongside so the Strategy-doc paragraph exists. Name-only, per the spec-edit; the description is authored later.
+
+Build:
+- `app/src/main/java/com/example/taskflow/ui/projects/ProjectsOverviewScreen.kt` — add an add affordance opening a small name-entry dialog (a new dialog composable under `ui/projects/` if it needs its own file).
+- `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` and `app/src/main/java/com/example/taskflow/ui/navigation/AppViewModel.kt` — wire a `createProject(name)` action from the overview affordance.
+- `app/src/main/java/com/example/taskflow/data/repository/ProjectRepository.kt`, `app/src/main/java/com/example/taskflow/data/repository/StrategyRepository.kt`, and `app/src/main/java/com/example/taskflow/data/local/ProjectDao.kt` — insert the Project at next sort-order (max + 1, adding a max-sort-order query if absent) and upsert its empty `StrategyEntry`.
+
+Test:
+- **Project creation.** On a device: the Projects-overview add affordance creates a Project from a typed name; it appears on the Projects overview and in the side menu in last position; it is selectable as the Project in a task's edit dialogue.
+- **[0004] Project view rendering.** Opening the created Project: the screen shows; the "Scheduled" card is collapsed by default and toggles on tap; the below-card undated list renders in per-Project order; the three empty states render (nothing at all; card + "no unscheduled tasks" line; list with no card). Confirmed by: populating the created Project through the FAB and editor.
+- **[0005] Project add / refile.** The add FAB inside a Project view files an undated task below the card; saving a Project change in a task's editor refiles it to the chosen Project; completing a task from a Project surface sends it to the Today tray. Confirmed by: exercising the Project flows against the created Project.
+
+**Spine header polish — title-slide overlap + Material chevron arrows** **[spine-header-polish]**
+
+Two issues in the Schedule spine header (`ScheduleScreen.kt`), both seen on-device verifying 0003 and both predating it. (1) Moving backward through the spine (e.g. Soon → Tomorrow), the outgoing page name doesn't clear before the incoming arrives, so the two titles overlap mid-transition. (2) The ←/→ arrows are plain text glyphs — small and baseline-aligned, so they sit low; they should be Material chevrons, vertically centred with the title. No spec-edit; both are below SPEC's altitude.
+
+Build:
+- `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleScreen.kt` — stagger or fade the `AnimatedSpineTitle` / `AnimatedContent` transition so the outgoing title clears before the incoming arrives; replace the text-glyph `Chevron` composable with a Material chevron icon (`KeyboardArrowLeft`/`Right`), vertically centred with the title.
+- `app/build.gradle.kts` — add the Material icons dependency only if the chosen glyph isn't in icons-core (KeyboardArrowLeft/Right are; the extended pack only if a different chevron is wanted).
+
+Test:
+- On a device: navigate backward through the spine (Soon → Tomorrow → Today) and confirm the titles no longer overlap; confirm the arrows render as centred Material chevrons. User-run.
+
 - **0006 — side-scrolling-date-picker** — Horizontal date strip replacing read-only date display in edit dialogue.
 - **0007 — recurring-tasks** — Recurrence rules and 30-day-capped instance rendering.
+**Within-list task reorder by drag — Schedule slots + Project below-card** **[task-reorder-within-list]**
+Depends on: [project-create]
+
+SPEC §Reorder within a Schedule slot and §Project view both specify within-list drag-reorder of top-level tasks, but no batch builds it — 0008 is cross-slot reschedule, 0010 is subtask/outliner drag, 0011 is cut-and-paste. The data layer already persists order (`TaskDao.updateSlotSortOrder` / `updateProjectSortOrder` / `getMax…SortOrder`, DAO-tested in 0001); what's missing is the drag UI on the two lists. This batch adds within-list drag-to-reorder to the Schedule slot list and the Project below-card list, persisting via the existing DAO methods. No spec-edit — SPEC already describes it. (Depends on [project-create] only so the Project-list reorder can be tested against a real Project; the Schedule-list half is independent.)
+
+Build:
+- `app/src/main/java/com/example/taskflow/ui/schedule/SlotPage.kt` and `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleViewModel.kt` — drag-to-reorder on the slot's task list, persisted via `updateSlotSortOrder`.
+- `app/src/main/java/com/example/taskflow/ui/project/ProjectScreen.kt` and `app/src/main/java/com/example/taskflow/ui/project/ProjectViewModel.kt` — drag-to-reorder on the below-card undated list, persisted via `updateProjectSortOrder`.
+- `app/src/main/java/com/example/taskflow/data/repository/TaskRepository.kt` — expose the reorder calls if not already surfaced.
+
+Test:
+- On a device: drag a task within a Schedule slot to a new position and confirm the order persists across navigation/relaunch; drag a task within a created Project's below-card list and confirm the per-Project order persists. User-run.
+
 - **0008 — drag-task-between-schedule-screens** — Long-press drag to reschedule across Schedule slots.
 - **0009 — subtasks-under-parent-expand-collapse** — Nested subtasks with parent expand/collapse and completion roll-up.
 - **0010 — outliner-typing-drag-target-icons** — Outliner editor for subtasks plus bin and promote drag targets.
@@ -57,7 +104,7 @@ Build:
 
 Planned tests that couldn't run in their own session. /plan rolls the runnable ones into a test batch.
 
-(none pending — the 0002, 0004, and 0005 device checks rolled into the **[device-verify-core-screens]** test batch at the top of Batches.)
+- **[device-verify-core-screens → 0002] Schedule date-matrix rendering.** On a device, verify dated tasks render with their DD/MM label in the right slot for the cases the FAB can't seed yet: a 2–7-day date in Soon, an 8+-day date in Later, and a past date staying on Today (DD/MM, no overdue label). Confirmed by: user-run on device once 0006 ships date-editing — the only path to those dates. (Slot math already unit-tested in 0002; the non-Today DD/MM render is exercised by the Tomorrow check in [device-verify-core-screens].)
 
 ## Captures
 
@@ -66,20 +113,6 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
-
-- **Spine header polish — two issues carried from batch 0002 (the ScheduleScreen header).** Both surfaced on-device while verifying 0003, and both pre-date this batch — 0003 only renamed the header code to span the new Projects page.
-  1. *Title overlaps moving backward (e.g. Soon → Tomorrow).* The page name animates with a slide — the outgoing word slides out as the incoming slides in, both crossing the same centred frame (`AnimatedSpineTitle` / `AnimatedContent` in `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleScreen.kt`). Going backward, "Soon" doesn't clear fast enough and overlaps "Tomorrow" mid-transition. Fix idea: stagger the slide so the outgoing word leaves before the incoming arrives, or speed up / fade the exit.
-  2. *Arrows should be Material chevron icons, not text glyphs.* The ←/→ are plain text characters (`Chevron` composable, same file); they render small and sit low because a text glyph aligns to its baseline, not the row centre. Alex wants proper Material chevrons, vertically centred with the title. Note: Material icons aren't a current dependency — this likely needs adding `androidx.compose.material` material-icons (KeyboardArrowLeft/Right are in core; the chevron pair is in extended) plus an `app/build.gradle.kts` edit.
-
-  Best handled as one small header-polish pass.
-
-- **Task reorder-by-drag has no batch home — surfaced deferring 0004 (2026-06-18).** SPEC §Project view says the below-card undated list is "fully reorderable within the Project," and SPEC §Reorder within a Schedule slot says Schedule rows reorder by drag too. Both are *within-list* drag-reorder of top-level tasks. Neither has a dedicated batch: 0008 is cross-slot reschedule (drag a task to a *different* slot), 0010 is subtask/outliner drag, and 0011 is cut-and-paste — none cover reordering top-level tasks inside one slot or one Project.
-
-  The data layer already supports it (`TaskDao.updateProjectSortOrder` / `updateSlotSortOrder` / `getMax…SortOrder` exist; reorder persistence was DAO-tested in 0001). What's missing is the drag-reorder UI. 0004 was built render-only (this session), so its below-card list shows in `project_sort_order` but can't be reordered yet; 0002's Schedule view deferred the same.
-
-  Why captured: completion-from-card has a clear home in 0005, but within-list reorder-by-drag is genuinely unowned — without a batch it silently never ships. The two cases (Schedule slot, Project below-card) likely share one drag-reorder batch. For /plan to place.
-
-- **SPEC §Add a new task says "from any screen" but the build adds no FAB on the Projects-overview spine page (surfaced by the /done spec-drift check on batch 0005).** Building 0005, the add FAB went on the four Schedule slots and inside a Project view — exactly the contexts SPEC §Add enumerates (Today/Tomorrow → dated, Soon/Later → parked, Project view → filed undated). The Projects-overview page (right of Later) is not one of those contexts, and a task added there would carry no date, no slot, and no Project, so it would be invisible on every surface. The build therefore hides the FAB on that page. This leaves SPEC §Add's opening "from any screen via a floating action button" literally broader than what shipped. For /plan to resolve, as a spec-edit: either tighten SPEC §Add's wording to name the real add surfaces (the four slots + a Project view), or define what add-from-Projects-overview should do (e.g. open the editor for an undated, unassigned task the user must then file).
 
 - **[device-verify-core-screens] can't run as designed — its "FAB seeds everything" premise is false, and it has hidden dependencies on 0006 and on unbuilt project-creation. Surfaced aborting the test session 2026-06-19.**
 
@@ -92,16 +125,6 @@ Captured outside /plan. Picked up and routed during the next /plan session.
   *The core mis-plan (dependencies).* This batch was placed at the top of Batches, ahead of 0006, on the assumption it only depended on 0005 having shipped the create path. In fact it depends on 0006 (for the date checks) and on an unbuilt project-creation feature (for the Project checks). Both its placement and its scope are wrong — it cannot sit ahead of 0006, and 0004 cannot run until project-creation exists.
 
   For /plan: split this batch. The FAB-reachable checks are runnable now on a connected device — Today/Tomorrow placement, the Tomorrow DD/MM label, Soon/Later undated parking, long-title wrap, and 0005's non-Project flows (add on each slot, row-tap edit, save persists title/notes, complete-to-tray, uncomplete, tray-row edit). The three date-matrix checks should ride with 0006. The Project checks should be gated on project-creation existing (or a decision to seed). The current build was installed and a device was connected during the aborted session, so a reshaped runnable-now slice could be verified quickly.
-
-- **No batch builds "create a Project," yet SPEC assumes Projects can be created. Surfaced aborting the [device-verify-core-screens] test session 2026-06-19.**
-
-  The build has no way to create a Project. `ProjectsOverviewScreen` and `AppDrawer` only list existing Projects; the data layer has `projectRepository.insert` but no UI calls it; the device DB holds 0 projects. So a user — and a tester — has no path to a Project at all.
-
-  SPEC assumes Projects exist and can be made: §Projects overview's empty state says "When you make one, it shows up here and in the menu"; §Side menu says the Projects list is visible even when empty as a pedagogical state; the whole data model and Project view are built around Projects existing. But no SPEC section describes the creation gesture — where the user taps to make a Project, and what it asks for.
-
-  No queued batch covers it either. 0006–0022 are date-picker, recurring, drag, subtasks, outliner, cut-paste, settings, JSON, strategy-doc, onboarding, tier, sync, MCP, reconciliation, help — none add project-creation. So this is a genuine missing user-facing feature that fell through the backlog.
-
-  For /plan: decide where project-creation gets built — likely a new build batch, ordered ahead of any device verification of Project surfaces (this blocks the 0004 part of [device-verify-core-screens]). It probably needs a small spec-edit first: SPEC should describe the creation gesture (e.g. a "+" on the Projects overview, the name/description fields, default placement and sort order) before it's built. Worth checking whether creation is meant to be UI-only or also via Claude/MCP on the paid tier (SYSTEM-PROMPT.md covers project suggestions) — but the free tier needs a manual creation path regardless.
 
 ### Parked
 
