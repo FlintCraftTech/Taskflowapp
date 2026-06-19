@@ -1,4 +1,4 @@
-# [HASH] — [device-verify-core-screens] device-verified the FAB-reachable add/render/complete loop on a Pixel 6 (0002 + 0005 non-Project): all passed except two create-path bugs — the Today slot stamps tomorrow's date (task lands on Tomorrow, not Today), and the New-task form keeps the previous title; both routed to Captures
+# df15c34 — [device-verify-core-screens] device-verified the FAB-reachable add/render/complete loop on a Pixel 6 (0002 + 0005 non-Project): all passed except two create-path bugs — the Today slot stamps tomorrow's date (task lands on Tomorrow, not Today), and the New-task form keeps the previous title; both routed to Captures
 
 This batch was the first time the FAB-reachable create / render / complete loop ran on a device. Batches 0002 and 0005 had shipped render-only or compile-verified, so these checks were deferred until the create path existed. A Pixel 6 (oriole) was connected, so Claude drove the checks directly and confirmed the assigned dates against the app's own SQLite database rather than trusting the on-screen labels.
 

@@ -14,6 +14,22 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
+**Add-flow create-path fixes — Today-add date + stale New-task title** **[add-flow-create-path-fixes]**
+
+Device verification on 2026-06-19 found two bugs in the 0005 add flow, both surfacing on the create path's first real on-device exercise. (1) Adding a task with the FAB on the Today slot stores tomorrow's date — the task lands on Tomorrow with a date label instead of on Today with none. Confirmed against the SQLite database, not just the on-screen label. (2) After saving a task, reopening the New-task form on the same slot shows the previous task's title still in the Title field.
+
+Bug 1's cause is not the obvious one. The capture guessed the date logic or the slot-to-date mapping, but a full read of the chain — the FAB's slot read, the page-to-slot map, the add ViewModel, and the date math — shows every link computes a Today add as today's date correctly, and Soon/Later/Tomorrow all work on device. The defect is not visible statically, so this batch reproduces it on a device first, then traces and fixes it. Bug 2's cause is known: the add screen keys its form-holder by slot, so a second add on the same slot reuses the prior form; the fix is a fresh form per add. Notes and Project only appeared to reset because they were empty both times.
+
+No SPEC change — both are deviations from what SPEC §Add a new task already specifies (a Today add is dated today and lands on Today; capture is the lightest input).
+
+Build:
+- Reproduce and fix the Today-slot add storing tomorrow's date, so a Today add stores today's date and lands on Today with no label. Investigate the FAB→slot→date chain to find the actual defect: `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt`, `app/src/main/java/com/example/taskflow/ui/navigation/Destination.kt`, `app/src/main/java/com/example/taskflow/ui/edit/EditTaskViewModel.kt`, `app/src/main/java/com/example/taskflow/domain/SlotDeriver.kt`. If the traced cause is unit-testable, add a regression test under `app/src/test/java/com/example/taskflow/`.
+- Reset the New-task form on each FAB open so the Title field opens blank: `app/src/main/java/com/example/taskflow/ui/edit/EditTaskScreen.kt` (the per-slot ViewModel key), and `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` if a per-open identifier is needed to force a fresh form.
+
+Test:
+- On a device: add a task from the Today slot; confirm it lands on Today with no date label and stores today's date. Re-confirm Tomorrow still stores tomorrow and Soon/Later still park undated, since the fix touches the shared chain. User-run.
+- On a device: add and save a task, then tap the FAB again on the same slot; confirm the New-task form opens with an empty Title. User-run.
+
 **Project creation — spec-edit** **[project-create-spec-edit]**
 Blocks: [project-create]
 
@@ -103,40 +119,6 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
-
-- **[device-verify-core-screens] can't run as designed — its "FAB seeds everything" premise is false, and it has hidden dependencies on 0006 and on unbuilt project-creation. Surfaced aborting the test session 2026-06-19.**
-
-  The batch assumed the 0005 add-FAB could seed all the data its three checks need. It can't, in two independent ways.
-
-  *Dates.* The FAB only produces a today-dated task (from Today), a tomorrow-dated task (from Tomorrow), or an undated parked task (from Soon/Later). The edit dialogue shows the date read-only — date-editing is batch 0006. Confirmed in `EditTaskViewModel`. So there is no way through the app to create a task dated 2–7 days out, 8+ days out, or in the past. That makes three of 0002's checks unreachable until 0006: a dated Soon row showing DD/MM, a dated Later row showing DD/MM, and a past-dated Today row showing DD/MM with no overdue label. These are low-risk to defer: the date→slot math was unit-tested in 0002 (11 passing tests), and "show DD/MM on a non-Today slot" is the same render path as the Tomorrow row, which IS reachable — so only the past-Today label branch is genuinely unseen. Reshape idea: move these three checks to ride with 0006, which adds date-editing and is exactly when they become testable end-to-end.
-
-  *Projects.* The device DB has 0 projects, and the build has no project-creation affordance anywhere (confirmed by inspecting both the DB and the UI). So 0004 (Project view rendering) and the Project-dependent parts of 0005 (add-from-Project, refile-to-Project) cannot run at all without seeding a Project. This roots in the separate project-creation-gap capture filed alongside this one.
-
-  *The core mis-plan (dependencies).* This batch was placed at the top of Batches, ahead of 0006, on the assumption it only depended on 0005 having shipped the create path. In fact it depends on 0006 (for the date checks) and on an unbuilt project-creation feature (for the Project checks). Both its placement and its scope are wrong — it cannot sit ahead of 0006, and 0004 cannot run until project-creation exists.
-
-  For /plan: split this batch. The FAB-reachable checks are runnable now on a connected device — Today/Tomorrow placement, the Tomorrow DD/MM label, Soon/Later undated parking, long-title wrap, and 0005's non-Project flows (add on each slot, row-tap edit, save persists title/notes, complete-to-tray, uncomplete, tray-row edit). The three date-matrix checks should ride with 0006. The Project checks should be gated on project-creation existing (or a decision to seed). The current build was installed and a device was connected during the aborted session, so a reshaped runnable-now slice could be verified quickly.
-
-- **BUG — adding a task from the Today slot stores tomorrow's date, so it never lands on Today. Found in device verification 2026-06-19 ([device-verify-core-screens]).**
-
-  On a Pixel 6 with the device clock on Friday 2026-06-19 (~20:20 AEST), adding a task with the FAB on the Today slot stored it dated 2026-06-20 (tomorrow) and rendered it on the Tomorrow slot with a "20/06" label. It should be dated today (19/06) and land on Today with no date label.
-
-  This was confirmed against the app's own SQLite database, not just the on-screen label. The Today-add stored date = 2026-06-20 at noon local. The same FAB on the Tomorrow slot also stored 2026-06-20 at noon — Today and Tomorrow produced the identical date. So the Today slot is computing "today + 1" while Tomorrow correctly computes "today + 1". Soon and Later correctly store no date at all (the slot column holds SOON/LATER instead).
-
-  The stored date is anchored at noon local time, which is a deliberate choice to avoid timezone/daylight-saving edge cases. Because it is noon-anchored, this is a fixed day-offset error in the add logic — not a timezone or late-evening rollover artifact. It will reproduce at any time of day. This is the first time the create path has been exercised on a device (batch 0002 was render-only, 0005 was compile-verified), which is why it surfaced now.
-
-  Effect: fails the [0002] "Today-add lands on Today, no label" check and the [0005] "Today-add dated today" check. Every other sub-check in those two test entries passed. The Schedule bucketing itself is correct — it placed a 20/06 task on Tomorrow as expected. The bug is only the date the Today slot assigns on add.
-
-  For /plan: this needs a build batch fixing the add-task date logic for the Today slot (likely the add/new-task ViewModel or the slot-to-date mapping).
-
-- **BUG — the New task form keeps the previous task's title when reopened. Found in device verification 2026-06-19 ([device-verify-core-screens]).**
-
-  After saving a task and tapping the FAB again to add another, the "New task" form opens with the Title field already filled in with the title of the task that was just saved. A fresh New task form should have an empty title.
-
-  Seen twice on the device: the form showed "Buy groceries" right after that task was saved, and "TomorrowAdd" right after that one was saved. The Notes field and the Project selection reset correctly each time — only the Title carries over.
-
-  This is stale form state being kept across FAB invocations within one app session. The practical cost: every task you add after the first one starts with the wrong title pre-filled, which you have to clear by hand — and it would be easy to save a task with the wrong title by accident.
-
-  For /plan: needs a build batch to reset the new-task form each time the FAB opens it. The add-flow ViewModel is likely not being re-initialised between opens. Small and self-contained; could ride with the BUG A date fix since both live in the add/new-task flow.
 
 ### Parked
 
