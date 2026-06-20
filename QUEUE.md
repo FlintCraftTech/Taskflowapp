@@ -166,3 +166,26 @@ Captured outside /plan. Picked up and routed during the next /plan session.
   Blocked by: the Claude/MCP integration builds (0019 AI-choice / MCP setup, 0020 remote MCP server, 0021 reconciliation) — behavioural, no slug; produce the video once there's a working integration to demonstrate.
 - **Post-first-test polish review.** After the first end-to-end test, walk the test notes and decide which polish issues warrant their own SPEC.md entry and which fold into existing ones — polish that doesn't trace to SPEC.md is a capture, not a build item.
   Blocked by: the first end-to-end test having happened — behavioural, no slug; when it lands, run a /plan polish-review pass over the test notes.
+- **Unite Later and the Projects overview into one Project-grouped "Later" screen** **[later-by-project]**
+  Parked: post-core design thread — the right end of the navigation spine. A deliberate rework, taken up against the real screens once they're further along, not resolved mid-core-build. Trigger-less; revisit when taking up post-core navigation design. Mirrors [nav-completed-history] (the left-end thread). Raised 2026-06-20; sequencing settled in /plan 2026-06-20.
+
+  **The proposal.** Merge the Later schedule slot and the Projects overview into one screen, still titled "Later." On it, far-future tasks display grouped by Project — each Project its own expandable section, in the same order as the Strategy doc. Sections expand a chunk at a time (around seven tasks) so a large Project doesn't flood the screen on expand.
+
+  **Why.** A "zoom levels of time" principle: the further out you look, the less dates matter and the more Projects become the useful unit. Near term you think in days (Today, Tomorrow); medium term in loose buckets (Soon); far future you think in areas of life — Projects. The principle is half-built in already: Projects sit far-right of the spine past Later, and the Strategy doc is the furthest zoom-out. Folding Later and the Projects overview together makes the whole right end one clean zoom: days → Soon → Later-by-Project → Strategy. (The original "removes a real redundancy" framing was set aside in planning: today Later shows far-future tasks by date and the Projects overview shows a bare Project list — they're complementary, not the same thing twice. The merge creates the unified view; the real case is the zoom coherence.)
+
+  **Resolved in the raising conversation:**
+  - Unassigned tasks go in a catch-all Project, named something like "General," pinned top or bottom. Mostly repeat tasks and general items — one catch-all is enough.
+  - Dated tasks on Later (8+ days) keep their DD/MM label inside their Project section.
+  - The expandable-seven detail is a sensible anti-bloat instinct, pinned against a real screen, not load-bearing now.
+  - Soon stays date-grouped while Later becomes Project-grouped. The asymmetry is the zoom metaphor: at the Later horizon, area matters more than date.
+
+  **Resolved in /plan 2026-06-20:**
+  - Project creation is NOT blocked by this. [project-create] builds now with creation on the Projects overview — the correct home today. The hard part of that batch (insert at the right sort order, create the Strategy entry, wire the create action) is needed no matter where the merge lands; only the add button's location depends on this, and re-homing a name-entry button later is small.
+  - The per-Project view survives the merge. A Project's dreaming surface — undated tasks with no schedule slot — never appears on Later, so tapping a Project section on Later cannot replace the per-Project screen.
+
+  **Still open for the design thread:**
+  - Whether Later shows all Projects (fully replacing the Projects overview) or only Projects with Later tasks — in which case the "see all Projects" job, and the creation button now living there, needs a home that survives the merge.
+  - The "General" catch-all: a real Project in the data model, or a virtual section — and its name.
+  - The side-menu empty-Projects pedagogy (§Side menu's teaching blurb when no Projects exist) — changes or goes if Projects stop being a standalone menu concept.
+
+  **SPEC consequences when developed:** rewrites §Schedule view (Later slot), §Projects overview (merged or repurposed), §Side menu (Projects pedagogy), possibly §Strategy-doc ordering. Reworks the right half of the spine settled by [nav-spine-spec-edit] on 2026-06-17. (§Project view now confirmed to stay.)
