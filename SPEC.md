@@ -74,6 +74,8 @@ The user needs this because a no-shame zone (UX principle 4) means refusing to d
 
 Swiping right past Later along the navigation spine reaches the **Projects overview**: a full-page list of the user's Projects — the same list the side menu shows, in the same order. Tapping a Project opens its Project view. The page right of Projects on the spine is the Strategy doc.
 
+The page also provides a way to **create a new Project**. The user invokes the page's add affordance and enters a name; a name is all creation asks for. The new Project is appended to the end of the Projects list and appears in that same last position in the side menu and the Strategy doc. No description is captured at creation — a Project's description is its Strategy-doc paragraph, written later in the Strategy editor (or with Claude on the paid tier) — so asking for one here would duplicate that editor and slow the add (UX principle 5, lightest possible capture).
+
 The user needs this because Projects are a primary navigation surface reachable directly on the spine, not only through the side menu — the spine's rightward end is where arranging time gives way to arranging Projects (UX principle 3). Projects answer a different question from "what's next?", so they sit past the Schedule slots rather than among them.
 
 ### Project view
@@ -115,7 +117,7 @@ The user needs this because tasks in the same slot still have a sequence — wha
 
 ### Add a new task
 
-The user adds a task from any screen via a floating action button or equivalent affordance. Where the new task goes follows capture-inherits-context (UX principle 5):
+The user adds a task via a floating action button or equivalent affordance on a task-add surface — the four Schedule slots (Today, Tomorrow, Soon, Later) and a Project view. The Projects overview page is not a task-add surface: its add affordance creates a Project (see *Projects overview*), not a task. Where the new task goes follows capture-inherits-context (UX principle 5):
 
 - **From Today or Tomorrow** — date is auto-set to today or tomorrow; the task lands on that screen. Project defaults to unassigned.
 - **From Soon or Later** — the task lands on that screen. The user is not forced to pick a date; if they leave the date empty, the task remains an undated parked task on that slot. The user is not forced to pick a Project either; if they don't pick one, the Project defaults to unassigned.

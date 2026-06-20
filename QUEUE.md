@@ -14,17 +14,7 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Project creation — spec-edit** **[project-create-spec-edit]**
-Blocks: [project-create]
-
-SPEC assumes Projects can be created — §Projects overview's empty state says "when you make one, it shows up here and in the menu" — but no section describes the gesture, and the build has no creation path at all. This spec-edit adds the manual creation behaviour so the feature batch builds against a described surface. Creation is name-only: the user enters a Project name on the Projects overview and it is appended to the Projects list, appearing in the same position in the side menu and the Strategy doc. No description is asked at creation — the description is the Strategy-doc paragraph, authored later in the Strategy editor (0015) or with Claude on the paid tier — so requiring it here would duplicate that editor and slow the add (UX principle 5, lightest capture). A new Project's Strategy paragraph appears automatically under the existing mechanical-structure rule, so no §Strategy-doc change is needed. This batch also folds in the §Add "from any screen" spec-drift filed during 0005: the add FAB shipped only on the four Schedule slots and inside a Project view, not on the Projects overview, so §Add's "from any screen" wording is broader than what shipped — the same Projects-overview surface this batch touches, so the wording fix rides here rather than in its own pass.
-
-Spec-edit:
-- SPEC §Projects overview: add that the page provides a way to create a new Project. Creating one asks only for a name; the new Project is appended to the end of the Projects list and shows in the same order in the side menu and Strategy doc. State that no description is captured here — it is the Strategy-doc paragraph, written later.
-- SPEC §Add a new task: the opening says the user adds a task "from any screen via a floating action button or equivalent affordance." Narrow "from any screen" to the real task-add surfaces the section already enumerates — the four Schedule slots and a Project view. Add that the Projects-overview page is not a task-add surface; its add affordance creates a Project (per the §Projects overview edit above).
-
 **Create a Project (manual) — Projects overview** **[project-create]**
-Depends on: [project-create-spec-edit]
 
 There is no way to create a Project in the build: the Projects overview and side menu only list existing ones, no UI calls `projectRepository.insert`, and the device DB stays empty — so the Project view, the Strategy doc, and Project-assignment in the task editor all have nothing to work with, and the deferred Project device-verification can't run. This batch adds the manual path: an add affordance on the Projects overview that asks for a name and creates the Project at the end of the Projects sort order, creating its empty Strategy entry alongside so the Strategy-doc paragraph exists. Name-only, per the spec-edit; the description is authored later.
 
