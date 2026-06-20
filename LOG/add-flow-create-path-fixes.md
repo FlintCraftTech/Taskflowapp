@@ -1,4 +1,4 @@
-# [HASH] — Add-flow create-path fixes — fixed the stale New-task title (EditTaskScreen.kt: per-slot ViewModel key in the Activity store replaced with a dialogue-scoped ViewModelStore cleared on dispose, so each FAB open opens a fresh blank form), and closed the Today-slot "stores tomorrow's date" bug as not-a-bug — verified correct by live device test plus static proof (a Today-add stores noon today, which can't cross a day), no code change; filed a capture proposing Tomorrow drop its date label
+# 55d7165 — Add-flow create-path fixes — fixed the stale New-task title (EditTaskScreen.kt: per-slot ViewModel key in the Activity store replaced with a dialogue-scoped ViewModelStore cleared on dispose, so each FAB open opens a fresh blank form), and closed the Today-slot "stores tomorrow's date" bug as not-a-bug — verified correct by live device test plus static proof (a Today-add stores noon today, which can't cross a day), no code change; filed a capture proposing Tomorrow drop its date label
 
 This batch carried two device-verify findings from the 0005 add flow. One was real and fixed; the other could not be reproduced and is now verified correct.
 
@@ -11,4 +11,4 @@ The Today-add test also surfaced a design idea, filed as a capture: drop the dat
 **Files touched:**
 - `app/src/main/java/com/example/taskflow/ui/edit/EditTaskScreen.kt` — dialogue-scoped ViewModelStore for a fresh form per FAB open; removed the dead `viewModelKey()` helper.
 
-**Routed to Captures:** Reconsider whether Tomorrow tasks should show a date label (design change → /plan).
+**Routed to Captures:** (1) Reconsider whether Tomorrow tasks should show a date label (design change → /plan). (2) Disable swipe-to-open the side menu so the ☰ key is the only opener (design change → /plan; needs a §Side menu spec-edit) — filed after this session's commit, so it rides the next session's commit.

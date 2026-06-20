@@ -49,6 +49,39 @@ Build:
 Test:
 - On a device: navigate backward through the spine (Soon → Tomorrow → Today) and confirm the titles no longer overlap; confirm the arrows render as centred Material chevrons. User-run.
 
+**Drop the date label from Tomorrow** **[tomorrow-no-date-label]**
+
+Tomorrow rows currently show their DD/MM date (SPEC §Schedule view, line 53), same as Soon and Later. But a Tomorrow task always carries exactly tomorrow's date — the slot is derived from the date, so nothing else can land there — which makes the label fully redundant with the page title. Tomorrow also has no past-date case the way Today does: a past-dated task falls onto Today, never Tomorrow, so dropping the label loses no stale-date signal. The date earns its place only on Soon (2–7 days) and Later (8+ days), where the page name doesn't tell you the actual day. Today keeps its existing rule unchanged — no label except when the date has slipped into the past. This is a design change, not a bug; the current Tomorrow labels follow the spec as written. Raised during the [add-flow-create-path-fixes] device check on 2026-06-19.
+
+Spec-edit:
+- SPEC §Schedule view (line 53): rewrite the date-label sentence so only Soon and Later show the DD/MM date. State that Tomorrow no longer shows a date label — the page name is the day signal. Leave Today's rule (label only when the date is in the past) unchanged.
+
+Build:
+- `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleViewModel.kt` — in `dateLabelFor`, return no label for the Tomorrow slot (Tomorrow always holds tomorrow's date, so there's nothing to show). Update the KDoc above the function that currently reads "Tomorrow/Soon/Later rows show their date."
+
+Test:
+- On a device: a task on Tomorrow shows no date label; Soon and Later tasks still show their DD/MM date; a past-dated task on Today still shows its date. User-run.
+
+**Open the side menu by ☰ only — disable drawer swipe-to-open** **[disable-drawer-swipe-open]**
+
+The navigation drawer's default left-edge swipe-to-open collides with Taskflow's signature gesture: horizontal swipe is how the whole spine moves (Today ↔ Tomorrow ↔ Soon ↔ Later and onward). On Today — the leftmost, default page — a right-swipe has no previous spine page, so the drawer quietly claims it, and the same horizontal gesture means "open menu" near the edge but "change day" in the content area. That region-dependent meaning is the confusion. Resolution: the menu opens only by tapping the ☰ button; swipe-to-open is disabled. The Android edge-swipe-to-open convention was weighed and set aside — it carries less weight in an app that repurposes horizontal swipe as its core navigation, and the ☰ remains a standard, discoverable opener, so no affordance is truly lost. Verified in AppRoot.kt: the ☰ opens the drawer programmatically (`drawerState.open()`), unaffected by the gesture flag, and the spine's `HorizontalPager` is a separate gesture, also unaffected. One known side effect: disabling drawer gestures also removes swipe-to-close, but tapping the scrim or any menu item still closes it. Noticed on device 2026-06-20.
+
+Spec-edit:
+- SPEC §Side menu (line 257): change "opens from the left edge" so it states the menu opens by tapping the ☰ button in the top bar (still sliding in from the left as a drawer). Record that swipe-to-open is intentionally disabled — one opener, the ☰ — so the gesture doesn't collide with the spine's horizontal-swipe navigation.
+
+Build:
+- `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` — add `gesturesEnabled = false` to the `ModalNavigationDrawer`. The ☰ (`onMenuClick` → `drawerState.open()`) and scrim/item taps to close are unaffected; the `HorizontalPager` day-swipe is unaffected.
+
+Test:
+- On a device: a left-edge right-swipe no longer opens the menu; the ☰ button still opens it; horizontal swipe in the content area still changes the day and the chevrons still work; tapping the scrim or a menu item still closes the drawer. User-run.
+
+**Verify the blank New-task form fix** **[verify-blank-new-task-form]**
+
+Rolled from Deferred tests. The [add-flow-create-path-fixes] build fixed the stale New-task title by giving the add dialogue a fresh view-model store per open. This is the device check that confirms it on the installed build — it couldn't run in the build's own session, so it was deferred.
+
+Test:
+- On a device with the current build installed: add and save a task on a Schedule slot, then tap the FAB again on the same slot; confirm the New-task form opens with an empty Title field. Verifies the stale-title fix from [add-flow-create-path-fixes]. User-run.
+
 - **0006 — side-scrolling-date-picker** — Horizontal date strip replacing read-only date display in edit dialogue.
 - **0007 — recurring-tasks** — Recurrence rules and 30-day-capped instance rendering.
 **Within-list task reorder by drag — Schedule slots + Project below-card** **[task-reorder-within-list]**
@@ -95,7 +128,6 @@ Build:
 Planned tests that couldn't run in their own session. /plan rolls the runnable ones into a test batch.
 
 - **[device-verify-core-screens → 0002] Schedule date-matrix rendering.** On a device, verify dated tasks render with their DD/MM label in the right slot for the cases the FAB can't seed yet: a 2–7-day date in Soon, an 8+-day date in Later, and a past date staying on Today (DD/MM, no overdue label). Confirmed by: user-run on device once 0006 ships date-editing — the only path to those dates. (Slot math already unit-tested in 0002; the non-Today DD/MM render is exercised by the Tomorrow check in [device-verify-core-screens].)
-- **[add-flow-create-path-fixes] Blank New-task form after a same-slot add.** On a device with this build installed: add and save a task on a Schedule slot, then tap the FAB again on the same slot; confirm the New-task form opens with an empty Title field. Verifies the stale-title fix (the dialogue now gets a fresh view-model store per open). Confirmed by: user-run on the Pixel once this build is installed.
 
 ## Captures
 
@@ -104,8 +136,6 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
-
-- **Reconsider whether Tomorrow tasks should show a date label.** Current rule (SPEC §Schedule view, line 53): Today hides its date label unless the date is in the past; Tomorrow, Soon, and Later all show their DD/MM date. Alex's view: Today and Tomorrow don't need a date shown, because the page name already says which day it is. Dates earn their place on Soon (2–7 days out) and Later (8+ days), where the page name doesn't tell you the actual day. Proposal: drop the date label from Tomorrow as well, showing dates only on Soon and Later. Today keeps its existing rule (no label except when the date has slipped into the past). This is a design change, not a bug — the current Tomorrow labels follow the spec as written. If adopted it needs a SPEC edit to §Schedule view (the Tomorrow/Soon/Later date-label line) and a small change in `ScheduleViewModel.dateLabelFor` so Tomorrow is treated like Today for labels. Raised during the [add-flow-create-path-fixes] device check on 2026-06-19.
 
 ### Parked
 
