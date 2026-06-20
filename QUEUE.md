@@ -14,22 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Add-flow create-path fixes — Today-add date + stale New-task title** **[add-flow-create-path-fixes]**
-
-Device verification on 2026-06-19 found two bugs in the 0005 add flow, both surfacing on the create path's first real on-device exercise. (1) Adding a task with the FAB on the Today slot stores tomorrow's date — the task lands on Tomorrow with a date label instead of on Today with none. Confirmed against the SQLite database, not just the on-screen label. (2) After saving a task, reopening the New-task form on the same slot shows the previous task's title still in the Title field.
-
-Bug 1's cause is not the obvious one. The capture guessed the date logic or the slot-to-date mapping, but a full read of the chain — the FAB's slot read, the page-to-slot map, the add ViewModel, and the date math — shows every link computes a Today add as today's date correctly, and Soon/Later/Tomorrow all work on device. The defect is not visible statically, so this batch reproduces it on a device first, then traces and fixes it. Bug 2's cause is known: the add screen keys its form-holder by slot, so a second add on the same slot reuses the prior form; the fix is a fresh form per add. Notes and Project only appeared to reset because they were empty both times.
-
-No SPEC change — both are deviations from what SPEC §Add a new task already specifies (a Today add is dated today and lands on Today; capture is the lightest input).
-
-Build:
-- Reproduce and fix the Today-slot add storing tomorrow's date, so a Today add stores today's date and lands on Today with no label. Investigate the FAB→slot→date chain to find the actual defect: `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt`, `app/src/main/java/com/example/taskflow/ui/navigation/Destination.kt`, `app/src/main/java/com/example/taskflow/ui/edit/EditTaskViewModel.kt`, `app/src/main/java/com/example/taskflow/domain/SlotDeriver.kt`. If the traced cause is unit-testable, add a regression test under `app/src/test/java/com/example/taskflow/`.
-- Reset the New-task form on each FAB open so the Title field opens blank: `app/src/main/java/com/example/taskflow/ui/edit/EditTaskScreen.kt` (the per-slot ViewModel key), and `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` if a per-open identifier is needed to force a fresh form.
-
-Test:
-- On a device: add a task from the Today slot; confirm it lands on Today with no date label and stores today's date. Re-confirm Tomorrow still stores tomorrow and Soon/Later still park undated, since the fix touches the shared chain. User-run.
-- On a device: add and save a task, then tap the FAB again on the same slot; confirm the New-task form opens with an empty Title. User-run.
-
 **Project creation — spec-edit** **[project-create-spec-edit]**
 Blocks: [project-create]
 
@@ -111,6 +95,7 @@ Build:
 Planned tests that couldn't run in their own session. /plan rolls the runnable ones into a test batch.
 
 - **[device-verify-core-screens → 0002] Schedule date-matrix rendering.** On a device, verify dated tasks render with their DD/MM label in the right slot for the cases the FAB can't seed yet: a 2–7-day date in Soon, an 8+-day date in Later, and a past date staying on Today (DD/MM, no overdue label). Confirmed by: user-run on device once 0006 ships date-editing — the only path to those dates. (Slot math already unit-tested in 0002; the non-Today DD/MM render is exercised by the Tomorrow check in [device-verify-core-screens].)
+- **[add-flow-create-path-fixes] Blank New-task form after a same-slot add.** On a device with this build installed: add and save a task on a Schedule slot, then tap the FAB again on the same slot; confirm the New-task form opens with an empty Title field. Verifies the stale-title fix (the dialogue now gets a fresh view-model store per open). Confirmed by: user-run on the Pixel once this build is installed.
 
 ## Captures
 
@@ -119,6 +104,8 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
+
+- **Reconsider whether Tomorrow tasks should show a date label.** Current rule (SPEC §Schedule view, line 53): Today hides its date label unless the date is in the past; Tomorrow, Soon, and Later all show their DD/MM date. Alex's view: Today and Tomorrow don't need a date shown, because the page name already says which day it is. Dates earn their place on Soon (2–7 days out) and Later (8+ days), where the page name doesn't tell you the actual day. Proposal: drop the date label from Tomorrow as well, showing dates only on Soon and Later. Today keeps its existing rule (no label except when the date has slipped into the past). This is a design change, not a bug — the current Tomorrow labels follow the spec as written. If adopted it needs a SPEC edit to §Schedule view (the Tomorrow/Soon/Later date-label line) and a small change in `ScheduleViewModel.dateLabelFor` so Tomorrow is treated like Today for labels. Raised during the [add-flow-create-path-fixes] device check on 2026-06-19.
 
 ### Parked
 

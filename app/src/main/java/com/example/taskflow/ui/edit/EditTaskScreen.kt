@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskflow.TaskflowApplication
@@ -51,10 +54,21 @@ fun EditTaskScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as TaskflowApplication
+    // A ViewModelStore scoped to this one dialogue open. EditTaskScreen leaves the composition when
+    // the dialogue closes (editTarget → null in AppRoot) and re-enters on the next open, so this
+    // remembered store — and the EditTaskViewModel it holds — is rebuilt every open. A new task
+    // therefore opens with a blank form each time instead of reusing the previous add's typed-in
+    // fields, and the onDispose clear stops the per-open stores from piling up across opens.
+    val editStoreOwner = remember {
+        object : ViewModelStoreOwner {
+            override val viewModelStore: ViewModelStore = ViewModelStore()
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose { editStoreOwner.viewModelStore.clear() }
+    }
     val viewModel: EditTaskViewModel = viewModel(
-        // Key by the target so opening a different task (or a fresh add) rebuilds the form rather
-        // than reusing the previous dialogue's fields.
-        key = "edit-${target.viewModelKey()}",
+        viewModelStoreOwner = editStoreOwner,
         factory = EditTaskViewModel.factory(app.taskRepository, app.projectRepository, target),
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -205,10 +219,3 @@ private fun DateField(dateLabel: String) {
 }
 
 private const val UNASSIGNED = "Unassigned"
-
-/** A stable key per target so the dialogue's view-model is rebuilt when the target changes. */
-private fun EditTarget.viewModelKey(): String = when (this) {
-    is EditTarget.Existing -> "existing-$taskId"
-    is EditTarget.NewOnSlot -> "new-slot-$slot"
-    is EditTarget.NewInProject -> "new-project-$projectId"
-}
