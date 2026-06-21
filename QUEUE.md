@@ -14,20 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Create a Project (manual) — Projects overview** **[project-create]**
-
-There is no way to create a Project in the build: the Projects overview and side menu only list existing ones, no UI calls `projectRepository.insert`, and the device DB stays empty — so the Project view, the Strategy doc, and Project-assignment in the task editor all have nothing to work with, and the deferred Project device-verification can't run. This batch adds the manual path: an add affordance on the Projects overview that asks for a name and creates the Project at the end of the Projects sort order, creating its empty Strategy entry alongside so the Strategy-doc paragraph exists. Name-only, per the spec-edit; the description is authored later.
-
-Build:
-- `app/src/main/java/com/example/taskflow/ui/projects/ProjectsOverviewScreen.kt` — add an add affordance opening a small name-entry dialog (a new dialog composable under `ui/projects/` if it needs its own file).
-- `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` and `app/src/main/java/com/example/taskflow/ui/navigation/AppViewModel.kt` — wire a `createProject(name)` action from the overview affordance.
-- `app/src/main/java/com/example/taskflow/data/repository/ProjectRepository.kt`, `app/src/main/java/com/example/taskflow/data/repository/StrategyRepository.kt`, and `app/src/main/java/com/example/taskflow/data/local/ProjectDao.kt` — insert the Project at next sort-order (max + 1, adding a max-sort-order query if absent) and upsert its empty `StrategyEntry`.
-
-Test:
-- **Project creation.** On a device: the Projects-overview add affordance creates a Project from a typed name; it appears on the Projects overview and in the side menu in last position; it is selectable as the Project in a task's edit dialogue.
-- **[0004] Project view rendering.** Opening the created Project: the screen shows; the "Scheduled" card is collapsed by default and toggles on tap; the below-card undated list renders in per-Project order; the three empty states render (nothing at all; card + "no unscheduled tasks" line; list with no card). Confirmed by: populating the created Project through the FAB and editor.
-- **[0005] Project add / refile.** The add FAB inside a Project view files an undated task below the card; saving a Project change in a task's editor refiles it to the chosen Project; completing a task from a Project surface sends it to the Today tray. Confirmed by: exercising the Project flows against the created Project.
-
 **Spine header polish — title-slide overlap + Material chevron arrows** **[spine-header-polish]**
 
 Two issues in the Schedule spine header (`ScheduleScreen.kt`), both seen on-device verifying 0003 and both predating it. (1) Moving backward through the spine (e.g. Soon → Tomorrow), the outgoing page name doesn't clear before the incoming arrives, so the two titles overlap mid-transition. (2) The ←/→ arrows are plain text glyphs — small and baseline-aligned, so they sit low; they should be Material chevrons, vertically centred with the title. No spec-edit; both are below SPEC's altitude.
@@ -75,7 +61,6 @@ Test:
 - **0006 — side-scrolling-date-picker** — Horizontal date strip replacing read-only date display in edit dialogue.
 - **0007 — recurring-tasks** — Recurrence rules and 30-day-capped instance rendering.
 **Within-list task reorder by drag — Schedule slots + Project below-card** **[task-reorder-within-list]**
-Depends on: [project-create]
 
 SPEC §Reorder within a Schedule slot and §Project view both specify within-list drag-reorder of top-level tasks, but no batch builds it — 0008 is cross-slot reschedule, 0010 is subtask/outliner drag, 0011 is cut-and-paste. The data layer already persists order (`TaskDao.updateSlotSortOrder` / `updateProjectSortOrder` / `getMax…SortOrder`, DAO-tested in 0001); what's missing is the drag UI on the two lists. This batch adds within-list drag-to-reorder to the Schedule slot list and the Project below-card list, persisting via the existing DAO methods. No spec-edit — SPEC already describes it. (Depends on [project-create] only so the Project-list reorder can be tested against a real Project; the Schedule-list half is independent.)
 
@@ -119,6 +104,10 @@ Planned tests that couldn't run in their own session. /plan rolls the runnable o
 
 - **[device-verify-core-screens → 0002] Schedule date-matrix rendering.** On a device, verify dated tasks render with their DD/MM label in the right slot for the cases the FAB can't seed yet: a 2–7-day date in Soon, an 8+-day date in Later, and a past date staying on Today (DD/MM, no overdue label). Confirmed by: user-run on device once 0006 ships date-editing — the only path to those dates. (Slot math already unit-tested in 0002; the non-Today DD/MM render is exercised by the Tomorrow check in [device-verify-core-screens].)
 
+- **[project-create → 0004] Project view rendering.** Opening a created Project: the screen shows (the open was observed ✓ on 2026-06-21); the "Scheduled" card is collapsed by default and toggles on tap; the below-card undated list renders in per-Project order; the three empty states render (nothing at all; card + "no unscheduled tasks" line; list with no card). Confirmed by: user-run on device against a created Project. Deferral: needs-user — paused pending the Project-surface navigation design question (see the "How you reach a Project" capture); re-run once that settles, since the surface may change. Runnability: user-run. (Runnable without 0006: undated adds need no date, and a Today-slot add + Project-assign yields a dated task for the Scheduled-card checks.)
+
+- **[project-create → 0005] Project add / refile.** The add FAB inside a Project view files an undated task below the card; saving a Project change in a task's editor refiles it to the chosen Project; completing a task from a Project surface sends it to the Today tray. Confirmed by: user-run on device against a created Project. Deferral: needs-user — same pause pending the Project-navigation design question. Runnability: user-run. (Runnable without 0006 via the same slot-add + Project-assign path.)
+
 ## Captures
 
 Captured outside /plan. Picked up and routed during the next /plan session.
@@ -126,6 +115,10 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
+
+- **Reconsider whether Projects should appear in the side menu at all.** Raised by Alex during the [project-create] device test (2026-06-21), seeing a created Project land in the menu. Her objection: Projects are conceptually "in the future" — the far-right zoom of the spine, not a peer of the now-through-later flow the menu lists. Listing every Project in the menu risks clogging it. It also breaks a consistency: every other menu link jumps to a destination on the spine, but tapping a Project opens a different surface (the Project view overlay), so Projects behave unlike the rest of the menu. This ties directly to [later-by-project], which collapses Later and the Projects overview into one Project-grouped "Later" screen — if Projects live under Later rather than standing alone, the menu arguably should point at "Later", not list Projects separately. The current menu-lists-Projects behaviour predates this batch (existing §Side menu + AppDrawer code); this batch only added creation. Decision deferred to /plan. Sharpens [later-by-project]'s existing open sub-question about side-menu Projects pedagogy into "should Projects be in the menu at all."
+
+- **How you reach a Project — tapping a Project shouldn't whisk you off the spine to a different kind of surface.** Raised by Alex during the [project-create] device test (2026-06-21). Her objection: every other navigation step sits on the spine (Today → Tomorrow → Soon → Later → Projects), but tapping a Project opens the Project view as a separate overlay surface, which breaks that consistency and feels conceptually jarring — like landing somewhere that isn't part of the same place. Crucially this is about navigation — how you get to a Project — not whether the Project screen should exist. The screen's existence was settled 2026-06-20 in [later-by-project]: it's kept as the home for a Project's undated "someday" tasks, which the dated-only "Later" screen can't hold. So this does not reopen that decision; it asks how the Project surface should be reached so it fits the spine rather than feeling like a different kind of place. Ties to [later-by-project] (the Later + Projects merge) and to the earlier same-session capture questioning whether Projects belong in the side menu at all — both are the same instinct: Projects are the far-future zoom of the spine, and their navigation should reflect that. Decision deferred to /plan.
 
 ### Parked
 

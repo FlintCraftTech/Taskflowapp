@@ -39,7 +39,8 @@ import kotlinx.coroutines.launch
 fun AppRoot(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val app = context.applicationContext as TaskflowApplication
-    val appViewModel: AppViewModel = viewModel(factory = AppViewModel.factory(app.projectRepository))
+    val appViewModel: AppViewModel =
+        viewModel(factory = AppViewModel.factory(app.projectRepository, app.strategyRepository))
     val projects by appViewModel.projects.collectAsStateWithLifecycle()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -129,6 +130,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
                     onProjectClick = { project ->
                         overlay = Overlay.ProjectView(project.id, project.name)
                     },
+                    onCreateProject = appViewModel::createProject,
                     onTaskClick = openEditor,
                     modifier = contentModifier,
                 )

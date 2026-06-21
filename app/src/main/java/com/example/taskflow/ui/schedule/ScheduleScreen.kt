@@ -52,6 +52,7 @@ fun ScheduleScreen(
     onMenuClick: () -> Unit,
     projects: List<Project>,
     onProjectClick: (Project) -> Unit,
+    onCreateProject: (String) -> Unit,
     onTaskClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -91,6 +92,7 @@ fun ScheduleScreen(
                 ProjectsOverviewContent(
                     projects = projects,
                     onProjectClick = onProjectClick,
+                    onCreateProject = onCreateProject,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
