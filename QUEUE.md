@@ -68,12 +68,19 @@ Build:
 Test:
 - On a device: navigate backward through the spine (Soon → Tomorrow → Today) and confirm the titles no longer overlap; confirm the arrows render as centred Material chevrons. User-run.
 
-**Drop the date label from Tomorrow** **[tomorrow-no-date-label]**
+**SPEC polish edits — Tomorrow date label + side-menu opener** **[polish-spec-edits]**
+Blocks: [tomorrow-no-date-label], [disable-drawer-swipe-open]
 
-Tomorrow rows currently show their DD/MM date (SPEC §Schedule view, line 53), same as Soon and Later. But a Tomorrow task always carries exactly tomorrow's date — the slot is derived from the date, so nothing else can land there — which makes the label fully redundant with the page title. Tomorrow also has no past-date case the way Today does: a past-dated task falls onto Today, never Tomorrow, so dropping the label loses no stale-date signal. The date earns its place only on Soon (2–7 days) and Later (8+ days), where the page name doesn't tell you the actual day. Today keeps its existing rule unchanged — no label except when the date has slipped into the past. This is a design change, not a bug; the current Tomorrow labels follow the spec as written. Raised during the [add-flow-create-path-fixes] device check on 2026-06-19.
+Two polish batches below each folded a one-sentence SPEC change into a feature build. The method keeps SPEC edits out of feature builds, so both spec sentences are pulled out here into one spec-edit batch — combined rather than split per-feature to keep the extra ceremony to a single session. Each feature batch now depends on this one. No code here; SPEC only.
 
 Spec-edit:
-- SPEC §Schedule view (line 53): rewrite the date-label sentence so only Soon and Later show the DD/MM date. State that Tomorrow no longer shows a date label — the page name is the day signal. Leave Today's rule (label only when the date is in the past) unchanged.
+- SPEC §Schedule view: rewrite the date-label sentence so only Soon and Later show the DD/MM date. State that Tomorrow no longer shows a date label — the page name is the day signal. Leave Today's rule (label only when the date is in the past) unchanged. (Serves [tomorrow-no-date-label].)
+- SPEC §Side menu: change "opens from the left edge" so it states the menu opens by tapping the ☰ button in the top bar (still sliding in from the left as a drawer). Record that swipe-to-open is intentionally disabled — one opener, the ☰ — so the gesture doesn't collide with the spine's horizontal-swipe navigation. (Serves [disable-drawer-swipe-open].)
+
+**Drop the date label from Tomorrow** **[tomorrow-no-date-label]**
+Depends on: [polish-spec-edits]
+
+Tomorrow rows currently show their DD/MM date (SPEC §Schedule view), same as Soon and Later. But a Tomorrow task always carries exactly tomorrow's date — the slot is derived from the date, so nothing else can land there — which makes the label fully redundant with the page title. Tomorrow also has no past-date case the way Today does: a past-dated task falls onto Today, never Tomorrow, so dropping the label loses no stale-date signal. The date earns its place only on Soon (2–7 days) and Later (8+ days), where the page name doesn't tell you the actual day. Today keeps its existing rule unchanged — no label except when the date has slipped into the past. This is a design change, not a bug; the current Tomorrow labels follow the spec as written. Raised during the [add-flow-create-path-fixes] device check on 2026-06-19.
 
 Build:
 - `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleViewModel.kt` — in `dateLabelFor`, return no label for the Tomorrow slot (Tomorrow always holds tomorrow's date, so there's nothing to show). Update the KDoc above the function that currently reads "Tomorrow/Soon/Later rows show their date."
@@ -82,11 +89,9 @@ Test:
 - On a device: a task on Tomorrow shows no date label; Soon and Later tasks still show their DD/MM date; a past-dated task on Today still shows its date. User-run.
 
 **Open the side menu by ☰ only — disable drawer swipe-to-open** **[disable-drawer-swipe-open]**
+Depends on: [polish-spec-edits]
 
 The navigation drawer's default left-edge swipe-to-open collides with Taskflow's signature gesture: horizontal swipe is how the whole spine moves (Today ↔ Tomorrow ↔ Soon ↔ Later and onward). On Today — the leftmost, default page — a right-swipe has no previous spine page, so the drawer quietly claims it, and the same horizontal gesture means "open menu" near the edge but "change day" in the content area. That region-dependent meaning is the confusion. Resolution: the menu opens only by tapping the ☰ button; swipe-to-open is disabled. The Android edge-swipe-to-open convention was weighed and set aside — it carries less weight in an app that repurposes horizontal swipe as its core navigation, and the ☰ remains a standard, discoverable opener, so no affordance is truly lost. Verified in AppRoot.kt: the ☰ opens the drawer programmatically (`drawerState.open()`), unaffected by the gesture flag, and the spine's `HorizontalPager` is a separate gesture, also unaffected. One known side effect: disabling drawer gestures also removes swipe-to-close, but tapping the scrim or any menu item still closes it. Noticed on device 2026-06-20.
-
-Spec-edit:
-- SPEC §Side menu (line 257): change "opens from the left edge" so it states the menu opens by tapping the ☰ button in the top bar (still sliding in from the left as a drawer). Record that swipe-to-open is intentionally disabled — one opener, the ☰ — so the gesture doesn't collide with the spine's horizontal-swipe navigation.
 
 Build:
 - `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` — add `gesturesEnabled = false` to the `ModalNavigationDrawer`. The ☰ (`onMenuClick` → `drawerState.open()`) and scrim/item taps to close are unaffected; the `HorizontalPager` day-swipe is unaffected.
@@ -154,30 +159,6 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
 
-**Project lifecycle UI for Later-by-Project — create, reorder, delete (+ SYSTEM-PROMPT.md)** **[project-lifecycle-later]**
-
-The [later-by-project-spec-edit] rewrite describes how Projects are created, reordered, and deleted in the Later-by-Project world. None of that UI is in the queued build batches [unassigned-project-model] or [later-by-project-screen], so it needs its own build work. SPEC describes the target; this capture is so it actually gets built.
-
-What SPEC now specifies:
-- **Create:** the task edit dialogue's Project picker gains a "New Project" entry. Choosing it opens a small foregrounded card to type a name (name only). On entry the Project is appended to the end of the order — a new card at the bottom of Later (above pinned Unassigned) and a new heading-and-paragraph at the end of the Strategy doc — and the edited task is filed into it. The creation plumbing (`AppViewModel.createProject`) already exists from [project-create]; only the picker entry point and the name card are new, and the old Projects-overview "+ New Project" button goes away with that page.
-- **Reorder:** the Strategy doc owns Project order. Free tier — drag Project headings in the Strategy-doc editor. Paid tier — order changes only through discussion with Claude; long-pressing a Project card on Later shows a toast "Discuss high-level strategy with Claude."
-- **Delete:** free tier — long-press a Later card and drag to a delete target in the upper-right (same gesture as tasks); the deleted Project's tasks reassign to Unassigned (reassign logic is in [unassigned-project-model]). Paid tier — long-press shows the same toast; deletion goes through Claude.
-
-Why tier-split: reordering and deleting a Project are decisions about the shape of the user's life, so on paid they route through Claude rather than a quick gesture; free has no Claude, so it gets direct manual gestures. Alex's call, 2026-06-22.
-
-SYSTEM-PROMPT.md consequence: the paid-tier reorder/delete-via-Claude behaviour belongs in SYSTEM-PROMPT.md (how Claude handles a Project reorder/delete discussion, applies it, reflects it into the Strategy doc + Later). SYSTEM-PROMPT.md is locked in the spec-edit batch, so it's untouched and needs its own edit.
-
-/plan should likely split this: a free-tier UI batch (creation picker + name card, free heading-drag reorder, free long-press drag-to-delete, the toast shell) buildable once the Later cards exist; and a paid Claude-mediated batch (reorder/delete through Claude) plus the SYSTEM-PROMPT.md edit, which also needs the MCP server and reconciliation.
-
-Blocked by: [later-by-project-screen] — landing; the Later cards and the editor Project picker must exist before this UI attaches. The paid Claude-mediated half additionally needs the remote MCP server (queue entry 0020) and Strategy-doc reconciliation (0021) — behavioural, name those when /plan splits this.
-
-**Queue maintenance after the Later-by-Project SPEC rewrite — stale parked item + drifted line-refs** **[queue-maint-later-by-project]**
-
-The [later-by-project-spec-edit] rewrite (2026-06-22) moved and removed SPEC content that a few existing queue items still point at. None blocks the next batches; this is cleanup for the next /plan.
-
-- Parked "Empty state copy and visuals" needs reworking for the Later-card world. It cites "the empty-Projects state does pedagogical work per SPEC" — that side-menu blurb was removed. It lists empty states for "an empty Project" (now an empty Later card) and "the Projects list before any Project exists" (the side-menu Projects list is gone; Later is the surface now). Its `Blocked by:` names "0004 Project view" (deleted) and "0003 side menu / Projects." Decide its new shape — which empty states still need copy (empty Later card; Later before any user Project; zero-task Schedule slots) — and re-point the blocker.
-- Two upcoming batches carry SPEC line-numbers the rewrite shifted (~15–20 lines): [tomorrow-no-date-label] ("§Schedule view, line 53") and [disable-drawer-swipe-open] ("§Side menu, line 257"). The target sentences are unchanged and each batch names its section, so they still resolve; update or drop the stale line numbers.
-
 ### Parked
 
 - **Schedule bucketing doesn't re-evaluate across the day boundary while the app stays open.** The Schedule view computes "now" each time the task flow re-emits — a DB change, or re-subscription when the app returns to foreground. If the app sits continuously in the foreground across the day-begins-at boundary (e.g. 4 AM) with no edits, a task won't move from Tomorrow into Today until the next emission or recomposition. It's an edge case (foreground-only app, and returning to the app re-subscribes and recomputes). Best handled when 0012 wires day-begins-at: add a boundary/lifecycle-resume tick that recomputes placement. Discovered building 0002.
@@ -188,8 +169,8 @@ The [later-by-project-spec-edit] rewrite (2026-06-22) moved and removed SPEC con
   Blocked by: the cloud-sync build (queue entry 0018) — behavioural trigger, no slug yet; decide the resume-merge strategy when that batch is designed.
 - **Custom instruction text — production version.** The suggested proactive-use custom-instruction text (for users' Claude preferences) needs testing in Alex's own real use before publishing. Once tested, document in Help (0022) and fold into SYSTEM-PROMPT.md if relevant.
   Blocked by: Alex testing the proactive custom-instruction in her own Claude use — behavioural trigger, no slug; needs the app usable first.
-- **Empty state copy and visuals.** Write copy + visuals for each empty state: Schedule screens with zero tasks, an empty Project, and the Projects list before any Project exists (the empty-Projects state does pedagogical work per SPEC). Best written in front of the real screen, not against screens that don't exist yet.
-  Blocked by: the screen-rendering builds reaching their polish pass (0002 Schedule, 0003 side menu / Projects, 0004 Project view) — behavioural, no slug; write each empty state against the real screen.
+- **Empty state copy and visuals.** Write copy + visuals for each empty state in the Later-by-Project world: a Schedule slot (Today / Tomorrow / Soon) with zero tasks; an empty **Later card** — a Project the user has but with nothing in it (cards always render, even empty); and **Later before the user has made any Project of their own**, where only the pinned Unassigned card shows. The old "empty Project" state is now the empty Later card; the old "Projects list before any Project exists" is gone with the side-menu Projects list — Later is the Projects surface now. Best written in front of the real screens, not against screens that don't exist yet.
+  Blocked by: [later-by-project-screen] reaching its polish pass — behavioural; the Later cards must exist before their empty states can be written. (The zero-task Schedule-slot copy could be written now against shipped 0002, but writing all the empty states together against the real Later screen is cleaner.)
 - **Help, Thanks, Report a bug content.** Content for the three bottom-of-drawer screens (batch 0022). Help should cover MCP setup, the production custom-instruction text, and the "tasks dated before today" behaviour described without naming the category (the SPEC §Tasks dated before today wording is ready).
   Blocked by: the production custom-instruction text (itself parked, behavioural) and the MCP setup design (0019/0020) — write Help content when 0022 is built and those inputs are ready.
 - **Search.** Confirmed feature, deferred. There IS a search box — finding tasks gets overwhelming at volume. Design decided: search results display like the in-Project/category listing — task details are visible but a task CANNOT be marked complete from the results list (read-only display). Tapping a result navigates to where the task actually lives, so the user can complete or edit it there. Still to pin at build time: search scope (current screen / current Project / whole database — tasks + Projects + Strategy doc).
@@ -219,3 +200,18 @@ The [later-by-project-spec-edit] rewrite (2026-06-22) moved and removed SPEC con
   Blocked by: the first end-to-end test having happened — behavioural, no slug; when it lands, run a /plan polish-review pass over the test notes.
 - **Execute-by-task-area across the spine — Project visible under near-term slots.** Raised by Alex during the [project-create] device test (2026-06-21), sharpened in /plan 2026-06-22. Later-by-Project shows far-future tasks grouped by area, but a user who only feels motivation for one area wants that Project's tasks wherever they sit, including Today, Tomorrow, and Soon. A task not in Later but carrying a Project reads as "scheduled," yet the near-term views show no Project label, and adding one risks breaking the day/Soon layouts. Alex (2026-06-22): there may be no good answer now, and leaving it open is acceptable.
   Blocked by: [later-by-project-screen] — behavioural; once the real Project-grouped Later ships, look at the cross-spine project-visibility question against it.
+- **Project lifecycle UI for Later-by-Project — create, reorder, delete (+ SYSTEM-PROMPT.md)** **[project-lifecycle-later]**
+  Blocked by: [later-by-project-screen] — landing; the Later cards and the editor Project picker must exist before this UI attaches. The paid Claude-mediated half additionally needs the remote MCP server (queue entry 0020) and Strategy-doc reconciliation (0021) — behavioural, name those when /plan splits this.
+
+  The [later-by-project-spec-edit] rewrite describes how Projects are created, reordered, and deleted in the Later-by-Project world. None of that UI is in the queued build batches [unassigned-project-model] or [later-by-project-screen], so it needs its own build work. SPEC describes the target; this capture is so it actually gets built.
+
+  What SPEC now specifies:
+  - **Create:** the task edit dialogue's Project picker gains a "New Project" entry. Choosing it opens a small foregrounded card to type a name (name only). On entry the Project is appended to the end of the order — a new card at the bottom of Later (above pinned Unassigned) and a new heading-and-paragraph at the end of the Strategy doc — and the edited task is filed into it. The creation plumbing (`AppViewModel.createProject`) already exists from [project-create]; only the picker entry point and the name card are new, and the old Projects-overview "+ New Project" button goes away with that page.
+  - **Reorder:** the Strategy doc owns Project order. Free tier — drag Project headings in the Strategy-doc editor. Paid tier — order changes only through discussion with Claude; long-pressing a Project card on Later shows a toast "Discuss high-level strategy with Claude."
+  - **Delete:** free tier — long-press a Later card and drag to a delete target in the upper-right (same gesture as tasks); the deleted Project's tasks reassign to Unassigned (reassign logic is in [unassigned-project-model]). Paid tier — long-press shows the same toast; deletion goes through Claude.
+
+  Why tier-split: reordering and deleting a Project are decisions about the shape of the user's life, so on paid they route through Claude rather than a quick gesture; free has no Claude, so it gets direct manual gestures. Alex's call, 2026-06-22.
+
+  SYSTEM-PROMPT.md consequence: the paid-tier reorder/delete-via-Claude behaviour belongs in SYSTEM-PROMPT.md (how Claude handles a Project reorder/delete discussion, applies it, reflects it into the Strategy doc + Later). SYSTEM-PROMPT.md is locked in the spec-edit batch, so it's untouched and needs its own edit.
+
+  /plan should likely split this: a free-tier UI batch (creation picker + name card, free heading-drag reorder, free long-press drag-to-delete, the toast shell) buildable once the Later cards exist; and a paid Claude-mediated batch (reorder/delete through Claude) plus the SYSTEM-PROMPT.md edit, which also needs the MCP server and reconciliation.
