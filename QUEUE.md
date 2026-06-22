@@ -14,31 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Later-by-Project — SPEC rewrite** **[later-by-project-spec-edit]**
-Blocks: [unassigned-project-model], [later-by-project-screen]
-
-Taskflow's right end of the spine is being reworked into one "zoom by time" flow: days (Today, Tomorrow) → loose near-term (Soon) → far-future by life-area (Later) → Strategy. Today the Later slot shows far-future tasks by date, Projects sit on a separate overview page, and each Project opens its own view. This rewrite folds all of that into Later: Later shows far-future tasks grouped by Project, one expandable card per Project, and the standalone Projects overview and per-Project view both go away. Alex pulled this off the post-core shelf on 2026-06-22 to build now.
-
-Decisions from the planning discussion that the SPEC text must carry:
-- Every task always has a Project. The "unassigned / no Project" null state is removed; a system "Unassigned" Project replaces it — kept out of the Strategy doc, undeletable, pinned to the bottom of Later. Every task then renders under some Project section, with no orphan "appears nowhere" cases.
-- The per-Project view is removed. A Project is an expand/collapse card inside Later. The old "dreaming surface" — a Project's undated tasks with no Schedule slot — moves into that Later card, alongside the Project's far-future dated tasks.
-- Moving a task between Projects stays, through the edit dialogue's Project picker, identical in free and paid. Alex's reason: free users have no Claude help and must move tasks by hand, so paid must not lose that either. Delete-and-rewrite was rejected as the only path because it destroys a task's subtasks, notes, and recurrence.
-- No Project-specific "add" affordance. Tasks are added the single existing way (the slot FABs); a task joins a Project via the editor's picker. The Later cards display and reorder only — rejected an in-card "+" because it multiplies add paths and accidental presses.
-- Projects leave the side menu and the empty-Projects teaching blurb goes. The menu becomes Today · Tomorrow · Soon · Later · Strategy; Later is how you reach any Project. (Resolves both 2026-06-21 device-test captures: Projects don't belong in the menu, and tapping a Project no longer jumps to a different kind of surface — there isn't one anymore.)
-- Soon stays date-grouped; only Later becomes Project-grouped. The asymmetry is the zoom metaphor — at the far horizon, area matters more than date.
-
-Spec-edit:
-- §Data model — every task has a Project; replace "may be unassigned (no Project)" with the system "Unassigned" Project; state projectId is never null. Rewrite the undated-task placement bullets so undated-with-Project-no-slot tasks live in that Project's Later card, not a Project view. Keep Soon/Later undated parking; Today/Tomorrow still always dated.
-- §Schedule view — describe Later as Project-grouped: one expand/collapse card per Project (every Project shown, even empty), ordered to match the Strategy doc, Unassigned pinned at the bottom, each card holding that Project's far-future dated tasks (DD/MM kept) plus its undated tasks, reorderable within the card. State Soon stays date-grouped.
-- §Projects overview — remove the section; the page is gone, its role absorbed by Later.
-- §Project view — remove the section; fold its collapsible-card + dreaming-surface content into the §Schedule view Later description.
-- §Move between Schedule and Project — rewrite: removing a date drops a task into its Project's Later card; changing Project via the editor's picker refiles it and is the supported cross-tier move; drop Project-view references.
-- §Add a new task — remove the "from inside a Project view" path; note Project is set/changed only via the editor.
-- §Side menu — remove per-Project entries and the empty-Projects blurb; menu lists Today · Tomorrow · Soon · Later · Strategy plus app-actions.
-- §Strategy doc — note the system "Unassigned" Project is excluded from the Strategy doc. Also check §Reorder within a Schedule slot for Later wording that should point at within-card reorder.
-
-No Test — spec-only; Alex reviews the rewritten sections.
-
 **Data model — system "Unassigned" Project, no null projectId** **[unassigned-project-model]**
 Depends on: [later-by-project-spec-edit]
 Blocks: [later-by-project-screen]
@@ -178,6 +153,30 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
+
+**Project lifecycle UI for Later-by-Project — create, reorder, delete (+ SYSTEM-PROMPT.md)** **[project-lifecycle-later]**
+
+The [later-by-project-spec-edit] rewrite describes how Projects are created, reordered, and deleted in the Later-by-Project world. None of that UI is in the queued build batches [unassigned-project-model] or [later-by-project-screen], so it needs its own build work. SPEC describes the target; this capture is so it actually gets built.
+
+What SPEC now specifies:
+- **Create:** the task edit dialogue's Project picker gains a "New Project" entry. Choosing it opens a small foregrounded card to type a name (name only). On entry the Project is appended to the end of the order — a new card at the bottom of Later (above pinned Unassigned) and a new heading-and-paragraph at the end of the Strategy doc — and the edited task is filed into it. The creation plumbing (`AppViewModel.createProject`) already exists from [project-create]; only the picker entry point and the name card are new, and the old Projects-overview "+ New Project" button goes away with that page.
+- **Reorder:** the Strategy doc owns Project order. Free tier — drag Project headings in the Strategy-doc editor. Paid tier — order changes only through discussion with Claude; long-pressing a Project card on Later shows a toast "Discuss high-level strategy with Claude."
+- **Delete:** free tier — long-press a Later card and drag to a delete target in the upper-right (same gesture as tasks); the deleted Project's tasks reassign to Unassigned (reassign logic is in [unassigned-project-model]). Paid tier — long-press shows the same toast; deletion goes through Claude.
+
+Why tier-split: reordering and deleting a Project are decisions about the shape of the user's life, so on paid they route through Claude rather than a quick gesture; free has no Claude, so it gets direct manual gestures. Alex's call, 2026-06-22.
+
+SYSTEM-PROMPT.md consequence: the paid-tier reorder/delete-via-Claude behaviour belongs in SYSTEM-PROMPT.md (how Claude handles a Project reorder/delete discussion, applies it, reflects it into the Strategy doc + Later). SYSTEM-PROMPT.md is locked in the spec-edit batch, so it's untouched and needs its own edit.
+
+/plan should likely split this: a free-tier UI batch (creation picker + name card, free heading-drag reorder, free long-press drag-to-delete, the toast shell) buildable once the Later cards exist; and a paid Claude-mediated batch (reorder/delete through Claude) plus the SYSTEM-PROMPT.md edit, which also needs the MCP server and reconciliation.
+
+Blocked by: [later-by-project-screen] — landing; the Later cards and the editor Project picker must exist before this UI attaches. The paid Claude-mediated half additionally needs the remote MCP server (queue entry 0020) and Strategy-doc reconciliation (0021) — behavioural, name those when /plan splits this.
+
+**Queue maintenance after the Later-by-Project SPEC rewrite — stale parked item + drifted line-refs** **[queue-maint-later-by-project]**
+
+The [later-by-project-spec-edit] rewrite (2026-06-22) moved and removed SPEC content that a few existing queue items still point at. None blocks the next batches; this is cleanup for the next /plan.
+
+- Parked "Empty state copy and visuals" needs reworking for the Later-card world. It cites "the empty-Projects state does pedagogical work per SPEC" — that side-menu blurb was removed. It lists empty states for "an empty Project" (now an empty Later card) and "the Projects list before any Project exists" (the side-menu Projects list is gone; Later is the surface now). Its `Blocked by:` names "0004 Project view" (deleted) and "0003 side menu / Projects." Decide its new shape — which empty states still need copy (empty Later card; Later before any user Project; zero-task Schedule slots) — and re-point the blocker.
+- Two upcoming batches carry SPEC line-numbers the rewrite shifted (~15–20 lines): [tomorrow-no-date-label] ("§Schedule view, line 53") and [disable-drawer-swipe-open] ("§Side menu, line 257"). The target sentences are unchanged and each batch names its section, so they still resolve; update or drop the stale line numbers.
 
 ### Parked
 

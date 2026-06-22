@@ -16,11 +16,11 @@ These inform every design decision. Entries below should serve one or more of th
 
 2. **Local-first source of truth.** Taskflow's own Room database is the source of truth for everything: tasks, Projects, the Strategy doc, ordering. No syncing to or importing from external task apps. Android Auto Backup (the OS-level feature) and an explicit JSON export/import screen handle portability for free-tier users. Cloud sync exists only as the paid tier and is the precondition for Claude integration.
 
-3. **Time horizon, not list, structures execution.** The four Schedule slots — Today, Tomorrow, Soon, Later — map onto how attention naturally scales with time, and they are the left segment of a single left-to-right navigation spine that extends rightward into Projects and Strategy. Splitting the slots into discrete bounded pages (rather than one infinite scroll) makes each horizon a glanceable thing. The spine reflects zoom levels of time: a day is the finest grain, weeks are coarser, and past about a week time stops being the useful frame — so navigation glides from arranging time into arranging Projects and Strategy rather than forcing everything onto a clock. Projects answer different questions ("what's possible?", "where does this belong?") and are reachable by swiping along the spine, not only via the side menu and from inside a task's edit dialogue. Projects are not slices of the day.
+3. **Time horizon, not list, structures execution.** The four Schedule slots — Today, Tomorrow, Soon, Later — map onto how attention naturally scales with time, and they are the left segment of a single left-to-right navigation spine that extends rightward into Strategy. Splitting the slots into discrete bounded pages (rather than one infinite scroll) makes each horizon a glanceable thing. The spine reflects zoom levels of time: a day is the finest grain, weeks are coarser, and past about a week time stops being the useful frame — so navigation glides from arranging time into arranging areas of life and Strategy rather than forcing everything onto a clock. Projects answer different questions ("what's possible?", "where does this belong?"); they are grouped on the **Later** slot — reached by swiping the spine to Later — rather than living on a page of their own. Projects are not slices of the day.
 
 4. **No-shame zone.** Taskflow does not name, count, or visually pressure tasks that have slipped past their date. They simply remain on Today, in the order the user placed them, until the user does them or moves them. The app has no "overdue" label or category — the help docs describe the behaviour without naming it as a category at all.
 
-5. **Capture inherits context.** Adding a task from a Schedule screen places it on that screen. Adding from inside a Project files it in that Project. The default capture path never asks the user to choose between Schedule and Project, or to set a date on Soon/Later capture — those decisions are made by where the user was when they tapped Add (and whatever defaults follow from that). Moving a task between Schedule and a Project later, or assigning a date to an undated task, is a separate, deliberate act done in the edit modal.
+5. **Capture inherits context.** Adding a task from a Schedule screen places it on that screen, in the system Unassigned Project until the user files it elsewhere. The default capture path never asks the user to set a date on Soon/Later capture or to pick a Project — those follow from where the user was when they tapped Add (and whatever defaults flow from that). Choosing or changing a task's Project, and assigning a date to an undated task, is a separate, deliberate act done in the edit modal.
 
 6. **Spatial action equals temporal change.** Dragging a task between Schedule screens changes when it's committed for. Reordering within a screen changes its sequence. The user reschedules and reprioritises by moving things, not by opening editors and adjusting fields. The screen a task is on IS its time horizon, expressed visually.
 
@@ -32,25 +32,31 @@ These inform every design decision. Entries below should serve one or more of th
 
 A task has the following user-visible properties:
 
-- A **Project**, which may be a real Project or unassigned (no Project).
+- A **Project** — every task belongs to one. There is no "unassigned / no Project" state: a task the user hasn't filed into one of their own Projects belongs to a system **"Unassigned"** Project instead (see *Schedule view* and *Strategy doc*). A task's Project is never empty.
 - An optional **date**.
 - An optional **Schedule slot** (Today / Tomorrow / Soon / Later), used only for undated tasks placed on Soon or Later. Dated tasks derive their slot from their date.
 
 Where a task appears on the user's screens follows from these properties:
 
-- **Dated tasks** appear in Schedule on the slot derived from their date (today → Today, tomorrow → Tomorrow, 2–7 days out → Soon, 8 or more days out → Later, before today → still Today). If they have a Project, they also appear in its top card (see *Move between Schedule and Project*).
-- **Undated tasks captured from (or dragged to) Soon or Later** appear on that slot. They do not appear in any Project's top card (cards list dated tasks). They appear in their Project's below-the-card area if they have a Project.
-- **Undated tasks with no Schedule placement** appear only below the card in their Project view.
+- **Dated tasks** appear in Schedule on the slot derived from their date (today → Today, tomorrow → Tomorrow, 2–7 days out → Soon, 8 or more days out → Later, before today → still Today). On Later, a far-future dated task appears inside its Project's card (see *Schedule view*).
+- **Undated tasks parked on Soon** appear on Soon, which stays a single date-ordered list of tasks.
+- **Undated tasks that aren't parked on Soon** — whether parked on Later or never given any slot — appear inside their Project's card on Later. This is where a task lives when it belongs to an area of life but isn't committed for any specific time.
 
 Today and Tomorrow tasks always have a date — capturing on those screens always sets the date, and there is no path to land an undated task there. Undated parking is a Soon/Later-only behaviour.
 
-The user needs this because Projects answer "where does this belong?" while Schedule answers "when am I doing it?" — two questions that should not collapse into one. Allowing tasks to live on Soon or Later without a date preserves the "I don't know exactly when, but soon" feeling that the user genuinely has, without forcing a date pick they can't yet make.
+The user needs this because Projects answer "where does this belong?" while Schedule answers "when am I doing it?" — two questions that should not collapse into one. Every task always belongs to a Project — its own area of life, or the system Unassigned Project if the user hasn't filed it — so every task has a home on Later and nothing falls through the cracks. Allowing tasks to live on Soon or Later without a date preserves the "I don't know exactly when, but soon" feeling that the user genuinely has, without forcing a date pick they can't yet make.
 
 ### Schedule view
 
-The four Schedule slots — **Today**, **Tomorrow**, **Soon**, **Later** — are the four leftmost pages on a single horizontal navigation spine that continues rightward into a Projects page and a Strategy page (see *Projects overview* and *Side menu*). The user swipes between adjacent pages; Today is the default open page. Each page shows the tasks placed on that slot. Project membership is not visible at this level; the only place a task's Project is visible during execution is inside its edit dialogue.
+The four Schedule slots — **Today**, **Tomorrow**, **Soon**, **Later** — are the four leftmost pages on a single horizontal navigation spine that continues rightward into the **Strategy** page (see *Side menu*). The user swipes between adjacent pages; Today is the default open page. Each page shows the tasks placed on that slot. On Today, Tomorrow, and Soon a task's Project is not shown — those pages are flat task lists, and during execution there the only place a task's Project surfaces is inside its edit dialogue. **Later is the exception: it is grouped by Project** (described below) — at the far horizon the area a task belongs to matters more than its exact date.
 
 Each task on Tomorrow, Soon, and Later shows its date (when the task has one) in **DD/MM** format (or **MM/DD** if the user has selected that in Settings — see *Settings → Date format*). Today's tasks do not show a date label except when the date is in the past, where the date communicates how stale the task is.
+
+**Later — grouped by Project.** Unlike the other slots, Later does not list tasks by date. It is a vertical list of **expand/collapse cards, one per Project** — every Project the user has appears, even one with nothing in it (as an empty card). The cards are ordered to match the **Strategy doc** (see *Strategy doc*), with the system **Unassigned** Project pinned to the bottom. A card is **collapsed by default**; expanding it is an opt-in act, so Later opens as a calm overview of the user's areas of life rather than a wall of tasks.
+
+Each card holds that Project's **far-future (8-or-more-days-out) dated tasks** — still showing their DD/MM date — together with the Project's **undated tasks**, the ones that belong to this area of life but aren't committed for any specific time. (This undated list is the old Project "dreaming surface," now folded into the card.) Tasks inside a card are **reorderable by drag**, and that order persists; it is the card's own ordering. Tasks can be completed from a card.
+
+**Project-level actions** — reordering the Projects and deleting one — are not done by freely rearranging the cards. Reordering is owned by the Strategy doc (see *Strategy doc*); deleting is done by long-pressing a card and dragging it to a delete target (see *Create or delete a Project*). On the **paid tier**, long-pressing a card instead shows a toast — *"Discuss high-level strategy with Claude"* — and both go through Claude.
 
 **At the day-begins-at boundary** (see *Settings → Day begins at*), Tomorrow's tasks roll into Today with no label, no reordering, and no shame. Today's tasks that did not get completed simply remain on Today in the order the user placed them — they do not move to the top, they do not gain a label, they do not change appearance. They are just still there.
 
@@ -70,36 +76,25 @@ A task whose date is in the past stays on Today, in the position the user placed
 
 The user needs this because a no-shame zone (UX principle 4) means refusing to dramatize the past. Most "overdue" UI exists to nag the user; nagging is exactly the failure mode this app is built to avoid.
 
-### Projects overview
+### Create or delete a Project
 
-Swiping right past Later along the navigation spine reaches the **Projects overview**: a full-page list of the user's Projects — the same list the side menu shows, in the same order. Tapping a Project opens its Project view. The page right of Projects on the spine is the Strategy doc.
+**Creating a Project.** A new Project is created from the **Project picker in a task's edit dialogue** (see *Edit a task*). The picker — used to file or refile a task into a Project — includes a **"New Project"** entry; choosing it opens a small foregrounded card where the user types the new Project's name. A name is all creation asks for — a Project's description is its Strategy-doc paragraph, written later (UX principle 5, lightest possible capture). On entry the Project is **appended to the end of the order**: it appears as a new card at the bottom of Later (above the pinned Unassigned card) and as a new heading-and-paragraph at the end of the Strategy doc, and the task being edited is filed into it.
 
-The page also provides a way to **create a new Project**. The user invokes the page's add affordance and enters a name; a name is all creation asks for. The new Project is appended to the end of the Projects list and appears in that same last position in the side menu and the Strategy doc. No description is captured at creation — a Project's description is its Strategy-doc paragraph, written later in the Strategy editor (or with Claude on the paid tier) — so asking for one here would duplicate that editor and slow the add (UX principle 5, lightest possible capture).
+**Deleting a Project.** A Project is deleted from **Later** by the same gesture used for tasks: **long-press its card and drag it to the delete target** in the upper-right corner. Deleting a Project does **not** delete its tasks — they are reassigned to the system **Unassigned** Project, so nothing is lost. On the **paid tier**, a Project is not deleted by direct drag: long-pressing the card shows the toast — *"Discuss high-level strategy with Claude"* — and deletion, like reordering, goes through discussion with Claude, because removing an area of life is a high-level act that earns a check-in.
 
-The user needs this because Projects are a primary navigation surface reachable directly on the spine, not only through the side menu — the spine's rightward end is where arranging time gives way to arranging Projects (UX principle 3). Projects answer a different question from "what's next?", so they sit past the Schedule slots rather than among them.
-
-### Project view
-
-A Project screen has two parts:
-
-- **Top card — currently scheduled (dated) tasks.** A collapsible card listing this Project's dated tasks, ordered by their position in the Schedule view. **The card is collapsed by default; expanding it is an opt-in act** — a Project opens showing its dreaming surface, not its committed work. The card is read-only with respect to ordering: task order is authored only in the Schedule view, and the Project view reflects that order. Tasks can be completed from the card. The card must not crowd out the unscheduled list below it.
-- **Below the card — undated tasks in this Project.** Fully reorderable within the Project. This is the dreaming surface — the place tasks live when they belong to this area of life but have not been committed for any specific time.
-
-When an undated task in this list is given a date (in the edit modal), it moves up into the top card and appears in the corresponding Schedule slot.
-
-The user needs this because Projects must show both "what am I currently doing in this area?" (the dated tasks, for context) and "what else is in this area waiting?" (the undated tasks, for divergent thinking). Authoring task order only in Schedule and reflecting it in the card, while authoring the below-the-card order in each Project, gives each surface one clean ordering authority.
+The user needs this because creating and removing Projects are decisions about the shape of the user's life, not quick list edits. Folding creation into the one place a task's Project is already chosen keeps a single Project-assignment surface; reassigning a deleted Project's tasks to Unassigned means nothing is ever lost to a deletion; and gating deletion behind a deliberate gesture — and, on the paid tier, a conversation with Claude — protects the user from casually dropping a whole area of life.
 
 ### Move between Schedule and Project
 
-A task moves between Schedule and a Project as a side-effect of editing two of its properties:
+A task moves between a near-term Schedule slot and its Project's place on Later as a side-effect of editing two of its properties:
 
-- **Adding or changing a date** moves the task into Schedule on the corresponding slot (and into the Project's card, if it has a Project).
-- **Removing a date** drops the task from Schedule (and from any Project card) and into below-the-card in its Project view, if it has a Project. If it has no Project, the task lives on whichever Schedule slot it was previously on as an undated parked task — this is only possible on Soon/Later.
-- **Changing the Project** refiles the task. If the task is dated, it appears in the new Project's card as well as continuing on its Schedule slot.
+- **Adding or changing a date** moves the task onto the Schedule slot its date falls in — Today, Tomorrow, Soon, or, for a date 8 or more days out, into its Project's card on Later.
+- **Removing a date** (in the editor) drops the task out of the day and Soon lists and into its Project's card on Later, where it sits among that Project's undated tasks.
+- **Changing the Project**, via the editor's **Project picker**, refiles the task under the new Project — it appears under that Project on Later, and if it is dated it continues on its Schedule slot too. This is the supported way to move a task between Projects, and it works identically on the free and paid tiers: it preserves the task's subtasks, notes, and recurrence, which deleting and re-creating the task would destroy.
 
 Drag-to-reschedule between Schedule screens (covered separately) changes the date directly via gesture.
 
-The user needs this because the bright line between Schedule and Project (UX principle 1) is preserved by making transitions explicit. Adjusting a task's date is the only way to push it into Schedule or pull it back; the app never silently changes which side of the line a task lives on.
+The user needs this because the bright line between Schedule and Project (UX principle 1) is preserved by making transitions explicit. Adjusting a task's date is the only way to push it into the near-term Schedule slots or pull it back to Later; the app never silently changes which side of the line a task lives on. Keeping the Project move on a property edit — rather than a destroy-and-rewrite — is deliberate: free-tier users have no Claude to help them refile, so the manual path must never cost a task its subtasks, notes, or recurrence.
 
 ### Drag a task between Schedule screens to reschedule
 
@@ -111,25 +106,25 @@ The user needs this because rescheduling is the single most common edit a person
 
 ### Reorder within a Schedule slot
 
-Within a single Schedule screen, the user reorders tasks by drag, without leaving the slot. The new order persists in the local database per-slot. Within a Project view, the below-the-card list has its own per-Project order.
+Within a single Schedule screen, the user reorders tasks by drag, without leaving the slot. The new order persists in the local database per-slot. On **Later**, where tasks are grouped into Project cards, reordering happens **within a card** — each Project card holds its own task order (see *Schedule view*). Reordering the Projects (the cards themselves) is a separate, higher-level act owned by the Strategy doc (see *Strategy doc*).
 
 The user needs this because tasks in the same slot still have a sequence — what to do first, what to do last — and that sequence is the user's own ranking, not derivable from anything else.
 
 ### Add a new task
 
-The user adds a task via a floating action button or equivalent affordance on a task-add surface — the four Schedule slots (Today, Tomorrow, Soon, Later) and a Project view. The Projects overview page is not a task-add surface: its add affordance creates a Project (see *Projects overview*), not a task. Where the new task goes follows capture-inherits-context (UX principle 5):
+The user adds a task via a floating action button or equivalent affordance on a Schedule slot — **Today, Tomorrow, Soon, or Later**. These four slots are the only task-add surfaces; there is no separate Project surface to add from, and a task joins a Project only through the editor's Project picker (see *Edit a task*). Where the new task goes follows capture-inherits-context (UX principle 5):
 
-- **From Today or Tomorrow** — date is auto-set to today or tomorrow; the task lands on that screen. Project defaults to unassigned.
-- **From Soon or Later** — the task lands on that screen. The user is not forced to pick a date; if they leave the date empty, the task remains an undated parked task on that slot. The user is not forced to pick a Project either; if they don't pick one, the Project defaults to unassigned.
-- **From inside a Project view** — the task is filed in that Project, undated, below the card.
+- **From Today or Tomorrow** — date is auto-set to today or tomorrow; the task lands on that screen. Project defaults to the system Unassigned Project.
+- **From Soon** — the task lands on Soon. The user is not forced to pick a date; if they leave it empty, the task stays an undated parked task on Soon. Project defaults to Unassigned.
+- **From Later** — the task is created undated and appears under its Project on Later; with no Project picked it defaults to Unassigned and shows in the Unassigned card. The user is forced to pick neither a date nor a Project.
 
 The user can change the Project, the date, or both inside the edit dialogue afterwards.
 
-The user needs this because the most natural starting point for a new task is the place the user is currently looking at, with the lightest possible required input. Forcing a date pick on Soon/Later capture, or a Project pick when neither was implied, would slow capture down — and slow capture is exactly the friction Taskflow is trying to remove.
+The user needs this because the most natural starting point for a new task is the place the user is currently looking at, with the lightest possible required input. Forcing a date pick on Soon/Later capture, or a Project pick when none was implied, would slow capture down — and slow capture is exactly the friction Taskflow is trying to remove.
 
 ### Edit a task
 
-Tapping a task opens an edit dialogue showing its title, notes, Project, and date. The Project field is editable so the user can refile a task. The date field is the side-scrolling date strip (see *Date picker — side-scrolling date strip*) — users can set a date, change a date, or clear a date. Setting or clearing the date moves the task into or out of Schedule accordingly (see *Move between Schedule and Project*). There is no time-of-day picker anywhere in this dialogue (UX principle 7).
+Tapping a task opens an edit dialogue showing its title, notes, Project, and date. The **Project field** is a picker, editable so the user can refile the task into another Project; the picker also offers a **"New Project"** entry that creates one on the spot (see *Create or delete a Project*). The date field is the side-scrolling date strip (see *Date picker — side-scrolling date strip*) — users can set a date, change a date, or clear a date. Setting or clearing the date moves the task into or out of the near-term Schedule slots accordingly (see *Move between Schedule and Project*). There is no time-of-day picker anywhere in this dialogue (UX principle 7).
 
 The user needs this because they need a way to change the two things drag-to-reschedule cannot change in a single gesture: which Project the task lives in, and whether it's dated at all.
 
@@ -161,9 +156,9 @@ The user needs this because adding and breaking down subtasks are the highest-fr
 
 ### Drag-target icons
 
-Whenever the user picks up a task by drag (whether from a Schedule screen, a Project view, or inside an edit dialogue), a row of drag-target icons appears. The set depends on context:
+Whenever the user picks up a task by drag (whether from a Schedule screen, including a Project's card on Later, or inside an edit dialogue), a row of drag-target icons appears. The set depends on context:
 
-- **From a Schedule screen or a Project view:** a **bin** target (delete the task) and a **cut** target (remove the task from Taskflow and place its content on the device clipboard).
+- **From a Schedule screen (including a Project's card on Later):** a **bin** target (delete the task) and a **cut** target (remove the task from Taskflow and place its content on the device clipboard).
 - **From inside an edit dialogue (subtask only):** **bin**, **cut**, and **promote** targets. Promote behaviour is described above.
 
 The cut/paste flow uses the **device's OS clipboard**, not a Taskflow-internal one. Cutting a task removes it from Taskflow and writes its content to the clipboard as plain text; a parent and its children go as a single indented block. Pasting happens inside the edit dialogue through the device's normal paste, and the outliner restores the parent/child hierarchy from the indentation — so a Taskflow-to-Taskflow cut and paste round-trips its structure, and pasted non-Taskflow text comes in as new lines by the same rule.
@@ -174,7 +169,7 @@ The user needs this because the operations Taskflow exposes on a dragged task (d
 
 ### Completed task tray on Today
 
-At the bottom of the Today screen is a greyed-out list of completed tasks. When the user checks off any task on any Schedule screen or in any Project view, it joins this tray. Tapping a completed task in the tray opens its edit dialogue, where the user can uncheck individual subtasks (which un-completes the parent and removes it from the tray) or otherwise modify the task.
+At the bottom of the Today screen is a greyed-out list of completed tasks. When the user checks off any task — on any Schedule screen, including inside a Project's card on Later — it joins this tray. Tapping a completed task in the tray opens its edit dialogue, where the user can uncheck individual subtasks (which un-completes the parent and removes it from the tray) or otherwise modify the task.
 
 Completed tasks stay in the tray until the **day-begins-at rollover** (see *Settings → Day begins at*), at which point the tray clears — each new day starts with a fresh, empty tray. Clearing the tray does not delete the tasks: completed tasks are retained and persist in the database; they only leave the tray view.
 
@@ -214,13 +209,18 @@ The user needs this because the value proposition is the deep integration into t
 
 ### Strategy doc
 
-The Strategy doc is a single document that lives above Projects in the structure Claude sees. Its **structure is mechanically generated**: each Project gets a heading (the Project's name) and a paragraph (the user's description) underneath, in the order matching the Projects list in the side menu. There are no life-area headers. There are no time-zoom buckets. Reordering Projects in the side menu reorders the corresponding heading-and-paragraph pairs in the Strategy doc.
+The Strategy doc is a single document that lives above Projects in the structure Claude sees. Its **structure is mechanically generated**: each of the user's Projects gets a heading (the Project's name) and a paragraph (the user's description) underneath. The system **Unassigned** Project is excluded — it gets no heading or paragraph, because it is not a real area of life, only the home for tasks the user hasn't filed. There are no life-area headers. There are no time-zoom buckets.
+
+The Strategy doc is also the **source of Project order** for the whole app: the order of its headings is the order Projects appear everywhere else, including the cards on **Later**. Reordering Projects is therefore a Strategy-doc act, and a deliberately high-level one:
+
+- **On the free tier**, the user reorders Projects directly in the Strategy-doc editor, by dragging the Project headings.
+- **On the paid tier**, Project order is changed through discussion with Claude rather than by direct drag — reordering Projects is a high-level strategic decision that earns a check-in, not a quick gesture. Long-pressing a Project card on Later surfaces a toast pointing the user to this: *"Discuss high-level strategy with Claude."*
 
 The doc reads roughly as a chronological-by-priority piece — for example, *"this Project is prioritised above all else,"* *"this Project is for in about six months' time after Project B is completed,"* *"this Project is indefinitely postponed"* — with the user composing the paragraphs under each Project's auto-generated heading.
 
-The doc is reachable from the side menu — a single calm row after the projects list, at the spine's right end — but is not foregrounded in everyday navigation; Taskflow still presents primarily as a task app.
+The doc is reachable from the side menu — a single calm row at the spine's right end — but is not foregrounded in everyday navigation; Taskflow still presents primarily as a task app.
 
-**On the free tier**, the user edits the descriptions directly in an in-app markdown editor; structure (headings + order) is auto-managed. There is no Claude reconciliation.
+**On the free tier**, the user edits the descriptions directly in an in-app markdown editor; the headings are auto-managed from the user's Projects, and the user sets Project order here by dragging headings (see above). There is no Claude reconciliation.
 
 **On the paid tier**, the same editor is used. On the user's first opening of the Strategy doc area after switching to the paid tier (e.g., starting a trial), Claude reads the existing content and looks for tasks that contradict the Strategy or seem missing from it; it presents what it finds in groups and asks the user what to do — never silently editing. After the initial pass, every time the user submits an edit, Claude reconciles downstream tasks the same way.
 
@@ -256,7 +256,7 @@ The user needs this because date conventions vary by region and Taskflow ships w
 
 ### Side menu
 
-A side menu opens from the left edge as a single navigation list that mirrors the spine from top to bottom: **Today**, **Tomorrow**, **Soon**, **Later**, then the user's **Projects** in the order the user has placed them, then a single calm row for the **Strategy doc**. Tapping any entry opens that page. The Projects list is visible even when empty — its empty state explains what Projects are for, doing pedagogical work for new users without requiring an onboarding step. Reordering Projects here also reorders the corresponding heading-and-paragraph pairs in the Strategy doc (see *Strategy doc*).
+A side menu opens from the left edge as a single navigation list that mirrors the spine from top to bottom: **Today**, **Tomorrow**, **Soon**, **Later**, then a single calm row for the **Strategy doc**. Tapping any entry opens that page. Projects are not listed in the menu — they live inside **Later** (see *Schedule view*), which is how the user reaches any Project.
 
 Pinned to the bottom of the drawer, separated from the navigation list, are the **app actions**: **Settings**, **Help**, **Thanks**, and **Report a bug**, plus a "turn on AI for the full experience" entry that re-triggers the AI choice flow on the free tier.
 
