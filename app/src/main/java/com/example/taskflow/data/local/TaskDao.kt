@@ -70,9 +70,18 @@ interface TaskDao {
     @Query("UPDATE tasks SET project_sort_order = :newOrder WHERE id = :taskId")
     suspend fun updateProjectSortOrder(taskId: Long, newOrder: Int)
 
-    // Refile a task to a different project
+    // Refile a task to a different project. project_id is non-null in the schema (every task has a
+    // Project home); the param stays nullable only to leave the existing repository signature
+    // untouched — no caller passes null, and a null bind would be rejected by the NOT NULL column.
     @Query("UPDATE tasks SET project_id = :projectId WHERE id = :taskId")
     suspend fun updateProjectId(taskId: Long, projectId: Long?)
+
+    // Bulk-reassign every task of one Project to another (used when a real Project is deleted, to
+    // move its tasks onto the system Unassigned Project before the delete so none is orphaned — the
+    // tasks→projects foreign key is RESTRICT). Reassigning by project_id covers subtasks too, since
+    // a subtask shares its parent's project_id.
+    @Query("UPDATE tasks SET project_id = :toProjectId WHERE project_id = :fromProjectId")
+    suspend fun reassignTasksToProject(fromProjectId: Long, toProjectId: Long)
 
     // Update date and slot together (for rescheduling)
     @Query("UPDATE tasks SET date = :date, slot = :slot WHERE id = :taskId")

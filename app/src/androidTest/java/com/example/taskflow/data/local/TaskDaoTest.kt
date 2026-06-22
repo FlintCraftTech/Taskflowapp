@@ -8,6 +8,7 @@ import com.example.taskflow.data.model.Project
 import com.example.taskflow.data.model.ScheduleSlot
 import com.example.taskflow.data.model.Task
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -33,6 +34,21 @@ class TaskDaoTest {
             .build()
         taskDao = database.taskDao()
         projectDao = database.projectDao()
+
+        // The in-memory test database is built directly (not via getInstance), so the seed callback
+        // that inserts the system Unassigned Project on a real install doesn't run here. Seed it by
+        // hand: project_id is now non-null and defaults to Project.UNASSIGNED_PROJECT_ID, and the
+        // tasks→projects foreign key requires that parent row to exist before any task is inserted.
+        runBlocking {
+            projectDao.insert(
+                Project(
+                    id = Project.UNASSIGNED_PROJECT_ID,
+                    name = Project.UNASSIGNED_PROJECT_NAME,
+                    sortOrder = 0,
+                    isSystem = true,
+                )
+            )
+        }
     }
 
     @After
@@ -222,5 +238,30 @@ class TaskDaoTest {
         taskDao.updateCompletion(parentId, true)
         val parent = taskDao.getById(parentId)
         assertTrue(parent!!.isCompleted)
+    }
+
+    @Test
+    fun newTaskWithNoProject_defaultsToUnassigned() = runTest {
+        // A task created without specifying a Project lands in the system Unassigned Project — there
+        // is no null / no-Project state any more (project_id is non-null).
+        val id = taskDao.insert(Task(title = "Unfiled task"))
+
+        val retrieved = taskDao.getById(id)
+        assertNotNull(retrieved)
+        assertEquals(Project.UNASSIGNED_PROJECT_ID, retrieved!!.projectId)
+    }
+
+    @Test
+    fun reassignTasksToProject_movesTasksToUnassigned() = runTest {
+        // Deleting a real Project reassigns its tasks to Unassigned (this is the bulk query the
+        // repository runs before the delete). Verify the query alone moves the rows.
+        val workId = projectDao.insert(Project(name = "Work", sortOrder = 1))
+        val taskA = taskDao.insert(Task(title = "A", projectId = workId, slot = ScheduleSlot.TODAY))
+        val taskB = taskDao.insert(Task(title = "B", projectId = workId, slot = ScheduleSlot.SOON))
+
+        taskDao.reassignTasksToProject(fromProjectId = workId, toProjectId = Project.UNASSIGNED_PROJECT_ID)
+
+        assertEquals(Project.UNASSIGNED_PROJECT_ID, taskDao.getById(taskA)!!.projectId)
+        assertEquals(Project.UNASSIGNED_PROJECT_ID, taskDao.getById(taskB)!!.projectId)
     }
 }

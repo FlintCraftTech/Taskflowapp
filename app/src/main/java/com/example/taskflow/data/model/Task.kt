@@ -13,7 +13,11 @@ import androidx.room.PrimaryKey
             entity = Project::class,
             parentColumns = ["id"],
             childColumns = ["project_id"],
-            onDelete = ForeignKey.SET_NULL
+            // project_id is non-null (every task belongs to a Project — its own, or the system
+            // Unassigned one), so SET_NULL is invalid. Deleting a real Project reassigns its tasks
+            // to Unassigned in ProjectRepository before the delete; RESTRICT is the backstop that
+            // surfaces a bug loudly if that reassignment is ever skipped, rather than orphaning rows.
+            onDelete = ForeignKey.RESTRICT
         ),
         ForeignKey(
             entity = Task::class,
@@ -37,8 +41,10 @@ data class Task(
 
     val notes: String = "",
 
+    // Every task belongs to exactly one Project — never null. Defaults to the system Unassigned
+    // Project (see Project.UNASSIGNED_PROJECT_ID) until the user files it into one of their own.
     @ColumnInfo(name = "project_id")
-    val projectId: Long? = null,
+    val projectId: Long = Project.UNASSIGNED_PROJECT_ID,
 
     val date: Long? = null,
 

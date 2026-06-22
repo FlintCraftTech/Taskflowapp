@@ -173,7 +173,9 @@ class EditTaskViewModel(
                     Task(
                         title = f.title.trim(),
                         notes = f.notes,
-                        projectId = f.projectId,
+                        // No Project picked → the system Unassigned Project. projectId is non-null:
+                        // every task has a Project home (see Task / Project.UNASSIGNED_PROJECT_ID).
+                        projectId = f.projectId ?: Project.UNASSIGNED_PROJECT_ID,
                         date = f.date,
                         slot = f.slot,
                         slotSortOrder = nextSlotSortOrder(f.date, f.slot),
@@ -186,7 +188,12 @@ class EditTaskViewModel(
                 )
             } else {
                 val o = original ?: return@launch
-                var updated = o.copy(title = f.title.trim(), notes = f.notes, projectId = f.projectId)
+                var updated = o.copy(
+                    title = f.title.trim(),
+                    notes = f.notes,
+                    // No Project picked → Unassigned (projectId is non-null; see the insert path above).
+                    projectId = f.projectId ?: Project.UNASSIGNED_PROJECT_ID,
+                )
                 // Refiling an undated task to a different Project appends it to that Project's
                 // below-card list (SPEC §Move between Schedule and Project). Dated tasks keep their
                 // order — they show in the card by Schedule position, not project_sort_order.

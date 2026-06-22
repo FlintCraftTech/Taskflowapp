@@ -14,27 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Data model — system "Unassigned" Project, no null projectId** **[unassigned-project-model]**
-Depends on: [later-by-project-spec-edit]
-Blocks: [later-by-project-screen]
-
-Later-by-Project renders every task under a Project section, so the current "no Project / null" state has to go. Today `Task.projectId` is nullable (`Long? = null`) with a `SET_NULL` foreign key. This batch replaces null with an explicit system **"Unassigned"** Project that every unassigned task points at — one uniform group-by-Project path, no orphan tasks. The Unassigned Project is system-flagged: undeletable, excluded from the Strategy doc, and pinned to the bottom of Later (pinning itself lands in the screen batch). Existing no-Project tasks migrate onto it. Pre-release with no real users, so the migration is cheap.
-
-Build:
-- `app/src/main/java/com/example/taskflow/data/model/Project.kt` — add an `is_system` flag (default false) marking the Unassigned Project.
-- `app/src/main/java/com/example/taskflow/data/model/Task.kt` — make `projectId` non-null (defaults to the Unassigned id). The tasks→projects FK is `onDelete = SET_NULL`, invalid for a non-null column: change deletion so a deleted Project's tasks reassign to Unassigned (in repository code) and adjust the FK (RESTRICT / handled-in-app).
-- `app/src/main/java/com/example/taskflow/data/local/TaskflowDatabase.kt` — bump the schema version; add a migration that inserts the system Unassigned Project, sets every null `project_id` to its id, and makes `project_id` non-null; seed Unassigned on fresh install via a Room callback. (Pre-release: a destructive migration + seed is acceptable if simpler — decide at build.)
-- `app/src/main/java/com/example/taskflow/data/local/ProjectDao.kt` — query to fetch the system Unassigned Project; keep it separable from the ordered user-Project list for bottom-pinning.
-- `app/src/main/java/com/example/taskflow/data/repository/ProjectRepository.kt` — expose the Unassigned Project; on deleting a real Project, reassign its tasks to Unassigned rather than null; keep the system Project out of any user-facing Project list that shouldn't show it.
-- `app/src/main/java/com/example/taskflow/data/repository/StrategyRepository.kt` — exclude `is_system` Projects from Strategy-doc mirroring, so Unassigned gets no Strategy entry.
-- `app/src/main/java/com/example/taskflow/data/local/TaskDao.kt` — bulk reassign query (set `project_id` to Unassigned where null or where a Project is being deleted), used by the migration and by Project deletion.
-
-Test (instrumentation, Claude-runnable on a connected device/emulator):
-- After migration, every task has a non-null `projectId`; previously-null tasks point at Unassigned.
-- The Unassigned Project exists, is flagged system, and cannot be deleted.
-- Deleting a real Project reassigns its tasks to Unassigned — no orphaned tasks.
-- The Unassigned Project produces no Strategy entry.
-
 **Later-by-Project screen — Project-grouped Later; remove Project view + overview** **[later-by-project-screen]**
 Depends on: [unassigned-project-model]
 
@@ -158,6 +137,9 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
+
+- **Verify Project-deletion data behaviour end-to-end once the delete UI exists.** [unassigned-project-model] built the repository logic: deleting a real Project reassigns its tasks to the system Unassigned Project (`TaskDao.reassignTasksToProject`, called by `ProjectRepository.delete`), and the Unassigned Project is undeletable (`ProjectRepository.delete` no-ops when `isSystem`). The reassign query was verified live on-device this session; the two guards were verified by code inspection. There is no automated test of `ProjectRepository.delete` itself and no delete gesture yet to exercise it end-to-end. When [project-lifecycle-later] builds the long-press-drag delete, its test pass should confirm: deleting a real Project moves its tasks onto Unassigned with none orphaned, and the Unassigned card cannot be deleted.
+  Blocked by: [project-lifecycle-later] — behavioural; the delete gesture must exist to test this end-to-end.
 
 ### Parked
 

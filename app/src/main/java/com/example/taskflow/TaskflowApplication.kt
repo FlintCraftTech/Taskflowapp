@@ -17,7 +17,8 @@ class TaskflowApplication : Application() {
     }
 
     val projectRepository: ProjectRepository by lazy {
-        ProjectRepository(database.projectDao())
+        // taskDao is passed so deleting a Project can reassign its tasks to Unassigned (FK is RESTRICT).
+        ProjectRepository(database.projectDao(), database.taskDao())
     }
 
     val strategyRepository: StrategyRepository by lazy {
