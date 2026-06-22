@@ -14,6 +14,74 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
+**Later-by-Project — SPEC rewrite** **[later-by-project-spec-edit]**
+Blocks: [unassigned-project-model], [later-by-project-screen]
+
+Taskflow's right end of the spine is being reworked into one "zoom by time" flow: days (Today, Tomorrow) → loose near-term (Soon) → far-future by life-area (Later) → Strategy. Today the Later slot shows far-future tasks by date, Projects sit on a separate overview page, and each Project opens its own view. This rewrite folds all of that into Later: Later shows far-future tasks grouped by Project, one expandable card per Project, and the standalone Projects overview and per-Project view both go away. Alex pulled this off the post-core shelf on 2026-06-22 to build now.
+
+Decisions from the planning discussion that the SPEC text must carry:
+- Every task always has a Project. The "unassigned / no Project" null state is removed; a system "Unassigned" Project replaces it — kept out of the Strategy doc, undeletable, pinned to the bottom of Later. Every task then renders under some Project section, with no orphan "appears nowhere" cases.
+- The per-Project view is removed. A Project is an expand/collapse card inside Later. The old "dreaming surface" — a Project's undated tasks with no Schedule slot — moves into that Later card, alongside the Project's far-future dated tasks.
+- Moving a task between Projects stays, through the edit dialogue's Project picker, identical in free and paid. Alex's reason: free users have no Claude help and must move tasks by hand, so paid must not lose that either. Delete-and-rewrite was rejected as the only path because it destroys a task's subtasks, notes, and recurrence.
+- No Project-specific "add" affordance. Tasks are added the single existing way (the slot FABs); a task joins a Project via the editor's picker. The Later cards display and reorder only — rejected an in-card "+" because it multiplies add paths and accidental presses.
+- Projects leave the side menu and the empty-Projects teaching blurb goes. The menu becomes Today · Tomorrow · Soon · Later · Strategy; Later is how you reach any Project. (Resolves both 2026-06-21 device-test captures: Projects don't belong in the menu, and tapping a Project no longer jumps to a different kind of surface — there isn't one anymore.)
+- Soon stays date-grouped; only Later becomes Project-grouped. The asymmetry is the zoom metaphor — at the far horizon, area matters more than date.
+
+Spec-edit:
+- §Data model — every task has a Project; replace "may be unassigned (no Project)" with the system "Unassigned" Project; state projectId is never null. Rewrite the undated-task placement bullets so undated-with-Project-no-slot tasks live in that Project's Later card, not a Project view. Keep Soon/Later undated parking; Today/Tomorrow still always dated.
+- §Schedule view — describe Later as Project-grouped: one expand/collapse card per Project (every Project shown, even empty), ordered to match the Strategy doc, Unassigned pinned at the bottom, each card holding that Project's far-future dated tasks (DD/MM kept) plus its undated tasks, reorderable within the card. State Soon stays date-grouped.
+- §Projects overview — remove the section; the page is gone, its role absorbed by Later.
+- §Project view — remove the section; fold its collapsible-card + dreaming-surface content into the §Schedule view Later description.
+- §Move between Schedule and Project — rewrite: removing a date drops a task into its Project's Later card; changing Project via the editor's picker refiles it and is the supported cross-tier move; drop Project-view references.
+- §Add a new task — remove the "from inside a Project view" path; note Project is set/changed only via the editor.
+- §Side menu — remove per-Project entries and the empty-Projects blurb; menu lists Today · Tomorrow · Soon · Later · Strategy plus app-actions.
+- §Strategy doc — note the system "Unassigned" Project is excluded from the Strategy doc. Also check §Reorder within a Schedule slot for Later wording that should point at within-card reorder.
+
+No Test — spec-only; Alex reviews the rewritten sections.
+
+**Data model — system "Unassigned" Project, no null projectId** **[unassigned-project-model]**
+Depends on: [later-by-project-spec-edit]
+Blocks: [later-by-project-screen]
+
+Later-by-Project renders every task under a Project section, so the current "no Project / null" state has to go. Today `Task.projectId` is nullable (`Long? = null`) with a `SET_NULL` foreign key. This batch replaces null with an explicit system **"Unassigned"** Project that every unassigned task points at — one uniform group-by-Project path, no orphan tasks. The Unassigned Project is system-flagged: undeletable, excluded from the Strategy doc, and pinned to the bottom of Later (pinning itself lands in the screen batch). Existing no-Project tasks migrate onto it. Pre-release with no real users, so the migration is cheap.
+
+Build:
+- `app/src/main/java/com/example/taskflow/data/model/Project.kt` — add an `is_system` flag (default false) marking the Unassigned Project.
+- `app/src/main/java/com/example/taskflow/data/model/Task.kt` — make `projectId` non-null (defaults to the Unassigned id). The tasks→projects FK is `onDelete = SET_NULL`, invalid for a non-null column: change deletion so a deleted Project's tasks reassign to Unassigned (in repository code) and adjust the FK (RESTRICT / handled-in-app).
+- `app/src/main/java/com/example/taskflow/data/local/TaskflowDatabase.kt` — bump the schema version; add a migration that inserts the system Unassigned Project, sets every null `project_id` to its id, and makes `project_id` non-null; seed Unassigned on fresh install via a Room callback. (Pre-release: a destructive migration + seed is acceptable if simpler — decide at build.)
+- `app/src/main/java/com/example/taskflow/data/local/ProjectDao.kt` — query to fetch the system Unassigned Project; keep it separable from the ordered user-Project list for bottom-pinning.
+- `app/src/main/java/com/example/taskflow/data/repository/ProjectRepository.kt` — expose the Unassigned Project; on deleting a real Project, reassign its tasks to Unassigned rather than null; keep the system Project out of any user-facing Project list that shouldn't show it.
+- `app/src/main/java/com/example/taskflow/data/repository/StrategyRepository.kt` — exclude `is_system` Projects from Strategy-doc mirroring, so Unassigned gets no Strategy entry.
+- `app/src/main/java/com/example/taskflow/data/local/TaskDao.kt` — bulk reassign query (set `project_id` to Unassigned where null or where a Project is being deleted), used by the migration and by Project deletion.
+
+Test (instrumentation, Claude-runnable on a connected device/emulator):
+- After migration, every task has a non-null `projectId`; previously-null tasks point at Unassigned.
+- The Unassigned Project exists, is flagged system, and cannot be deleted.
+- Deleting a real Project reassigns its tasks to Unassigned — no orphaned tasks.
+- The Unassigned Project produces no Strategy entry.
+
+**Later-by-Project screen — Project-grouped Later; remove Project view + overview** **[later-by-project-screen]**
+Depends on: [unassigned-project-model]
+
+The visible half of the redesign. Later stops showing far-future tasks by date and becomes a list of expand/collapse Project cards: one card per Project (every Project shown, even empty), the system Unassigned card pinned at the bottom. Each card holds that Project's far-future dated tasks (DD/MM kept) and its undated tasks, reorderable within the card. The two surfaces it replaces are deleted — the per-Project view (`ui/project/`) and the Projects overview page (`ui/projects/`) — and the side menu drops its per-Project list. Reaching a Project now means opening Later and expanding its card; there is no separate Project surface, which is what removes the "tapping a Project whisks you off the spine" feel. Depends on the data-model batch so every task already has a Project to group under.
+
+Build:
+- `app/src/main/java/com/example/taskflow/ui/schedule/SlotPage.kt` and `ScheduleViewModel.kt` — render the Later slot as Project-grouped expand/collapse cards, ordered to match the Strategy doc with Unassigned pinned bottom (empty Projects shown as empty cards); each card lists the Project's far-future dated + undated tasks; within-card drag-reorder persisted via the existing `updateProjectSortOrder`. Today/Tomorrow/Soon rendering unchanged. (A dedicated Later composable in `ui/schedule/` is fine if cleaner than branching SlotPage.) Soft anti-flood detail, pin against the real screen: a large Project's card can expand a chunk at a time (~7 tasks) rather than all at once — not load-bearing, decide on device.
+- `app/src/main/java/com/example/taskflow/ui/project/ProjectScreen.kt` + `ProjectViewModel.kt` — delete; the per-Project view is gone.
+- `app/src/main/java/com/example/taskflow/ui/projects/ProjectsOverviewScreen.kt` — delete; the overview page is gone.
+- `app/src/main/java/com/example/taskflow/ui/navigation/AppViewModel.kt` — remove the Projects-overview spine page and per-Project overlay navigation; drop the projects flow that fed the drawer's per-Project list (Later's grouping is driven from the schedule layer).
+- `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` — remove the Projects overview page from the spine pager and the Project-overlay host.
+- `app/src/main/java/com/example/taskflow/ui/navigation/AppDrawer.kt` — drawer lists Today · Tomorrow · Soon · Later · Strategy plus app-actions; remove the per-Project entries and the empty-Projects teaching blurb.
+- `app/src/main/java/com/example/taskflow/ui/navigation/Destination.kt` — remove the Project and Projects-overview destinations.
+- `app/src/main/java/com/example/taskflow/ui/edit/EditTaskScreen.kt` + `EditTaskViewModel.kt` — the Project picker is the move-between-Projects path; ensure it lists user Projects and can set Unassigned, and confirm an undated task can be produced by clearing the date (the Q2b flag) — close the gap if the add flow can't yet.
+- `app/src/main/java/com/example/taskflow/ui/common/PlaceholderScreen.kt` — remove if left unused after the overlay deletions; otherwise leave.
+
+Test:
+- User-run on device: Later shows every Project as an expand/collapse card with Unassigned pinned bottom; empty Projects appear as empty cards; a card holds its far-future dated tasks (DD/MM) and undated tasks; reordering within a card persists across relaunch.
+- User-run on device: the Projects overview page is gone from the spine; no per-Project view opens; the side menu lists only Today · Tomorrow · Soon · Later · Strategy.
+- User-run on device: moving a task to another Project via the editor refiles it and it shows under the new Project's card; an undated task created via the add flow (date cleared) lands in its Project's Later card.
+- Claude-runnable: the project builds with no dangling references to the deleted Project view / overview screens.
+
 **Spine header polish — title-slide overlap + Material chevron arrows** **[spine-header-polish]**
 
 Two issues in the Schedule spine header (`ScheduleScreen.kt`), both seen on-device verifying 0003 and both predating it. (1) Moving backward through the spine (e.g. Soon → Tomorrow), the outgoing page name doesn't clear before the incoming arrives, so the two titles overlap mid-transition. (2) The ←/→ arrows are plain text glyphs — small and baseline-aligned, so they sit low; they should be Material chevrons, vertically centred with the title. No spec-edit; both are below SPEC's altitude.
@@ -60,17 +128,16 @@ Test:
 
 - **0006 — side-scrolling-date-picker** — Horizontal date strip replacing read-only date display in edit dialogue.
 - **0007 — recurring-tasks** — Recurrence rules and 30-day-capped instance rendering.
-**Within-list task reorder by drag — Schedule slots + Project below-card** **[task-reorder-within-list]**
+**Within-list task reorder by drag — Schedule slots** **[task-reorder-within-list]**
 
-SPEC §Reorder within a Schedule slot and §Project view both specify within-list drag-reorder of top-level tasks, but no batch builds it — 0008 is cross-slot reschedule, 0010 is subtask/outliner drag, 0011 is cut-and-paste. The data layer already persists order (`TaskDao.updateSlotSortOrder` / `updateProjectSortOrder` / `getMax…SortOrder`, DAO-tested in 0001); what's missing is the drag UI on the two lists. This batch adds within-list drag-to-reorder to the Schedule slot list and the Project below-card list, persisting via the existing DAO methods. No spec-edit — SPEC already describes it. (Depends on [project-create] only so the Project-list reorder can be tested against a real Project; the Schedule-list half is independent.)
+SPEC §Reorder within a Schedule slot specifies within-list drag-reorder of top-level tasks, but no batch builds it — 0008 is cross-slot reschedule, 0010 is subtask/outliner drag, 0011 is cut-and-paste. The data layer already persists order (`TaskDao.updateSlotSortOrder` / `getMaxSlotSortOrder`, DAO-tested in 0001); what's missing is the drag UI. This batch adds within-list drag-to-reorder to the Schedule slot task list (Today/Tomorrow/Soon), persisting via the existing DAO method. No spec-edit — SPEC already describes it. (Rescoped 2026-06-22: the Project-list reorder half moved into [later-by-project-screen], which builds within-card reorder on Later; the per-Project view this batch originally targeted no longer exists, so Later reorder is out of scope here.)
 
 Build:
 - `app/src/main/java/com/example/taskflow/ui/schedule/SlotPage.kt` and `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleViewModel.kt` — drag-to-reorder on the slot's task list, persisted via `updateSlotSortOrder`.
-- `app/src/main/java/com/example/taskflow/ui/project/ProjectScreen.kt` and `app/src/main/java/com/example/taskflow/ui/project/ProjectViewModel.kt` — drag-to-reorder on the below-card undated list, persisted via `updateProjectSortOrder`.
-- `app/src/main/java/com/example/taskflow/data/repository/TaskRepository.kt` — expose the reorder calls if not already surfaced.
+- `app/src/main/java/com/example/taskflow/data/repository/TaskRepository.kt` — expose the reorder call if not already surfaced.
 
 Test:
-- On a device: drag a task within a Schedule slot to a new position and confirm the order persists across navigation/relaunch; drag a task within a created Project's below-card list and confirm the per-Project order persists. User-run.
+- On a device: drag a task within a Schedule slot (Today/Tomorrow/Soon) to a new position and confirm the order persists across navigation/relaunch. User-run.
 
 - **0008 — drag-task-between-schedule-screens** — Long-press drag to reschedule across Schedule slots.
 - **0009 — subtasks-under-parent-expand-collapse** — Nested subtasks with parent expand/collapse and completion roll-up.
@@ -104,10 +171,6 @@ Planned tests that couldn't run in their own session. /plan rolls the runnable o
 
 - **[device-verify-core-screens → 0002] Schedule date-matrix rendering.** On a device, verify dated tasks render with their DD/MM label in the right slot for the cases the FAB can't seed yet: a 2–7-day date in Soon, an 8+-day date in Later, and a past date staying on Today (DD/MM, no overdue label). Confirmed by: user-run on device once 0006 ships date-editing — the only path to those dates. (Slot math already unit-tested in 0002; the non-Today DD/MM render is exercised by the Tomorrow check in [device-verify-core-screens].)
 
-- **[project-create → 0004] Project view rendering.** Opening a created Project: the screen shows (the open was observed ✓ on 2026-06-21); the "Scheduled" card is collapsed by default and toggles on tap; the below-card undated list renders in per-Project order; the three empty states render (nothing at all; card + "no unscheduled tasks" line; list with no card). Confirmed by: user-run on device against a created Project. Deferral: needs-user — paused pending the Project-surface navigation design question (see the "How you reach a Project" capture); re-run once that settles, since the surface may change. Runnability: user-run. (Runnable without 0006: undated adds need no date, and a Today-slot add + Project-assign yields a dated task for the Scheduled-card checks.)
-
-- **[project-create → 0005] Project add / refile.** The add FAB inside a Project view files an undated task below the card; saving a Project change in a task's editor refiles it to the chosen Project; completing a task from a Project surface sends it to the Today tray. Confirmed by: user-run on device against a created Project. Deferral: needs-user — same pause pending the Project-navigation design question. Runnability: user-run. (Runnable without 0006 via the same slot-add + Project-assign path.)
-
 ## Captures
 
 Captured outside /plan. Picked up and routed during the next /plan session.
@@ -115,10 +178,6 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
-
-- **Reconsider whether Projects should appear in the side menu at all.** Raised by Alex during the [project-create] device test (2026-06-21), seeing a created Project land in the menu. Her objection: Projects are conceptually "in the future" — the far-right zoom of the spine, not a peer of the now-through-later flow the menu lists. Listing every Project in the menu risks clogging it. It also breaks a consistency: every other menu link jumps to a destination on the spine, but tapping a Project opens a different surface (the Project view overlay), so Projects behave unlike the rest of the menu. This ties directly to [later-by-project], which collapses Later and the Projects overview into one Project-grouped "Later" screen — if Projects live under Later rather than standing alone, the menu arguably should point at "Later", not list Projects separately. The current menu-lists-Projects behaviour predates this batch (existing §Side menu + AppDrawer code); this batch only added creation. Decision deferred to /plan. Sharpens [later-by-project]'s existing open sub-question about side-menu Projects pedagogy into "should Projects be in the menu at all."
-
-- **How you reach a Project — tapping a Project shouldn't whisk you off the spine to a different kind of surface.** Raised by Alex during the [project-create] device test (2026-06-21). Her objection: every other navigation step sits on the spine (Today → Tomorrow → Soon → Later → Projects), but tapping a Project opens the Project view as a separate overlay surface, which breaks that consistency and feels conceptually jarring — like landing somewhere that isn't part of the same place. Crucially this is about navigation — how you get to a Project — not whether the Project screen should exist. The screen's existence was settled 2026-06-20 in [later-by-project]: it's kept as the home for a Project's undated "someday" tasks, which the dated-only "Later" screen can't hold. So this does not reopen that decision; it asks how the Project surface should be reached so it fits the spine rather than feeling like a different kind of place. Ties to [later-by-project] (the Later + Projects merge) and to the earlier same-session capture questioning whether Projects belong in the side menu at all — both are the same instinct: Projects are the far-future zoom of the spine, and their navigation should reflect that. Decision deferred to /plan.
 
 ### Parked
 
@@ -159,26 +218,5 @@ Captured outside /plan. Picked up and routed during the next /plan session.
   Blocked by: the Claude/MCP integration builds (0019 AI-choice / MCP setup, 0020 remote MCP server, 0021 reconciliation) — behavioural, no slug; produce the video once there's a working integration to demonstrate.
 - **Post-first-test polish review.** After the first end-to-end test, walk the test notes and decide which polish issues warrant their own SPEC.md entry and which fold into existing ones — polish that doesn't trace to SPEC.md is a capture, not a build item.
   Blocked by: the first end-to-end test having happened — behavioural, no slug; when it lands, run a /plan polish-review pass over the test notes.
-- **Unite Later and the Projects overview into one Project-grouped "Later" screen** **[later-by-project]**
-  Parked: post-core design thread — the right end of the navigation spine. A deliberate rework, taken up against the real screens once they're further along, not resolved mid-core-build. Trigger-less; revisit when taking up post-core navigation design. Mirrors [nav-completed-history] (the left-end thread). Raised 2026-06-20; sequencing settled in /plan 2026-06-20.
-
-  **The proposal.** Merge the Later schedule slot and the Projects overview into one screen, still titled "Later." On it, far-future tasks display grouped by Project — each Project its own expandable section, in the same order as the Strategy doc. Sections expand a chunk at a time (around seven tasks) so a large Project doesn't flood the screen on expand.
-
-  **Why.** A "zoom levels of time" principle: the further out you look, the less dates matter and the more Projects become the useful unit. Near term you think in days (Today, Tomorrow); medium term in loose buckets (Soon); far future you think in areas of life — Projects. The principle is half-built in already: Projects sit far-right of the spine past Later, and the Strategy doc is the furthest zoom-out. Folding Later and the Projects overview together makes the whole right end one clean zoom: days → Soon → Later-by-Project → Strategy. (The original "removes a real redundancy" framing was set aside in planning: today Later shows far-future tasks by date and the Projects overview shows a bare Project list — they're complementary, not the same thing twice. The merge creates the unified view; the real case is the zoom coherence.)
-
-  **Resolved in the raising conversation:**
-  - Unassigned tasks go in a catch-all Project, named something like "General," pinned top or bottom. Mostly repeat tasks and general items — one catch-all is enough.
-  - Dated tasks on Later (8+ days) keep their DD/MM label inside their Project section.
-  - The expandable-seven detail is a sensible anti-bloat instinct, pinned against a real screen, not load-bearing now.
-  - Soon stays date-grouped while Later becomes Project-grouped. The asymmetry is the zoom metaphor: at the Later horizon, area matters more than date.
-
-  **Resolved in /plan 2026-06-20:**
-  - Project creation is NOT blocked by this. [project-create] builds now with creation on the Projects overview — the correct home today. The hard part of that batch (insert at the right sort order, create the Strategy entry, wire the create action) is needed no matter where the merge lands; only the add button's location depends on this, and re-homing a name-entry button later is small.
-  - The per-Project view survives the merge. A Project's dreaming surface — undated tasks with no schedule slot — never appears on Later, so tapping a Project section on Later cannot replace the per-Project screen.
-
-  **Still open for the design thread:**
-  - Whether Later shows all Projects (fully replacing the Projects overview) or only Projects with Later tasks — in which case the "see all Projects" job, and the creation button now living there, needs a home that survives the merge.
-  - The "General" catch-all: a real Project in the data model, or a virtual section — and its name.
-  - The side-menu empty-Projects pedagogy (§Side menu's teaching blurb when no Projects exist) — changes or goes if Projects stop being a standalone menu concept.
-
-  **SPEC consequences when developed:** rewrites §Schedule view (Later slot), §Projects overview (merged or repurposed), §Side menu (Projects pedagogy), possibly §Strategy-doc ordering. Reworks the right half of the spine settled by [nav-spine-spec-edit] on 2026-06-17. (§Project view now confirmed to stay.)
+- **Execute-by-task-area across the spine — Project visible under near-term slots.** Raised by Alex during the [project-create] device test (2026-06-21), sharpened in /plan 2026-06-22. Later-by-Project shows far-future tasks grouped by area, but a user who only feels motivation for one area wants that Project's tasks wherever they sit, including Today, Tomorrow, and Soon. A task not in Later but carrying a Project reads as "scheduled," yet the near-term views show no Project label, and adding one risks breaking the day/Soon layouts. Alex (2026-06-22): there may be no good answer now, and leaving it open is acceptable.
+  Blocked by: [later-by-project-screen] — behavioural; once the real Project-grouped Later ships, look at the cross-spine project-visibility question against it.
