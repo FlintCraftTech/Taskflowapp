@@ -30,16 +30,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskflow.TaskflowApplication
-import com.example.taskflow.data.model.Project
+import com.example.taskflow.data.model.ScheduleSlot
 import com.example.taskflow.ui.navigation.SpinePage
-import com.example.taskflow.ui.projects.ProjectsOverviewContent
 import kotlinx.coroutines.launch
 
 /**
- * The navigation spine: the four Schedule slots (Today, Tomorrow, Soon, Later) then the Projects
- * overview, as a left-to-right HorizontalPager (SPEC §Schedule view + §Projects overview, UX
- * principle 3). Today is the default open page; swiping moves between adjacent pages, and the drawer
- * can jump to any slot by driving the shared [pagerState].
+ * The navigation spine: the four Schedule slots (Today, Tomorrow, Soon, Later) as a left-to-right
+ * HorizontalPager (SPEC §Schedule view, UX principle 3). Today is the default open page; swiping
+ * moves between adjacent pages, and the drawer can jump to any slot by driving the shared
+ * [pagerState]. Later is grouped by Project (see [LaterPage]); Projects have no page of their own.
  *
  * Header: the current page's name, centred in a fixed-width frame (as wide as the longest label),
  * sliding in the direction of travel, flanked by chevrons that hide at the spine's ends. The menu
@@ -50,15 +49,13 @@ import kotlinx.coroutines.launch
 fun ScheduleScreen(
     pagerState: PagerState,
     onMenuClick: () -> Unit,
-    projects: List<Project>,
-    onProjectClick: (Project) -> Unit,
-    onCreateProject: (String) -> Unit,
     onTaskClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as TaskflowApplication
-    val viewModel: ScheduleViewModel = viewModel(factory = ScheduleViewModel.factory(app.taskRepository))
+    val viewModel: ScheduleViewModel =
+        viewModel(factory = ScheduleViewModel.factory(app.taskRepository, app.projectRepository))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
@@ -79,20 +76,21 @@ fun ScheduleScreen(
                 .weight(1f),
         ) { page ->
             val slot = SpinePage.entries[page].slot
-            if (slot != null) {
+            if (slot == ScheduleSlot.LATER) {
+                // Later is grouped by Project — a list of expand/collapse cards, not a flat list.
+                LaterPage(
+                    cards = uiState.laterCards,
+                    onToggleComplete = viewModel::setCompleted,
+                    onTaskClick = onTaskClick,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
                 SlotPage(
                     slot = slot,
                     tasks = uiState.forSlot(slot),
                     completed = uiState.completed,
                     onToggleComplete = viewModel::setCompleted,
                     onTaskClick = onTaskClick,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                ProjectsOverviewContent(
-                    projects = projects,
-                    onProjectClick = onProjectClick,
-                    onCreateProject = onCreateProject,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

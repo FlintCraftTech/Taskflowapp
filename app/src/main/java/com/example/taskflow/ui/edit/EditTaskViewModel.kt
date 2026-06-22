@@ -26,13 +26,12 @@ import java.time.format.DateTimeFormatter
  * from the surface the FAB was pressed on (SPEC §Add a new task, capture-inherits-context).
  *
  * - [NewOnSlot] — pressed on a Schedule page. Today/Tomorrow auto-set the date; Soon/Later park the
- *   task undated on that slot. The view-model resolves slot → (date, slot) below.
- * - [NewInProject] — pressed inside a Project view. Filed in that Project, undated, below the card.
+ *   task undated on that slot. The view-model resolves slot → (date, slot) below. A task added from
+ *   Later is undated and defaults to the Unassigned Project (it shows in the Later Unassigned card).
  */
 sealed interface EditTarget {
     data class Existing(val taskId: Long) : EditTarget
     data class NewOnSlot(val slot: ScheduleSlot) : EditTarget
-    data class NewInProject(val projectId: Long) : EditTarget
 }
 
 /**
@@ -133,7 +132,6 @@ class EditTaskViewModel(
     /** Resolves the starting form for a new task from its inherited context; existing loads in init. */
     private fun initialForm(): Form = when (target) {
         is EditTarget.Existing -> Form(isNew = false, loaded = false)
-        is EditTarget.NewInProject -> Form(isNew = true, projectId = target.projectId)
         is EditTarget.NewOnSlot -> {
             val today = SlotDeriver.logicalDate(clock(), zone)
             when (target.slot) {

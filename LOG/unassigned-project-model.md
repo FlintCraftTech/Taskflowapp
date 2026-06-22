@@ -1,4 +1,4 @@
-# [HASH] — Data model — non-null `Task.projectId` defaulting to a seeded system "Unassigned" Project; destructive v2 migration seeds it via `onOpen`; Project-delete reassigns tasks to it; Strategy mirroring excludes it [unassigned-project-model]
+# 781e60b — Data model — non-null `Task.projectId` defaulting to a seeded system "Unassigned" Project; destructive v2 migration seeds it via `onOpen`; Project-delete reassigns tasks to it; Strategy mirroring excludes it [unassigned-project-model]
 
 Later-by-Project needs every task to sit under a Project, so the old "no Project / null" state had to go. `Task.projectId` became non-null, defaulting to a system "Unassigned" Project seeded at a well-known id (1). Unassigned is flagged `is_system`: excluded from the user-facing ordered-Project lists (so it can be pinned separately later), excluded from Strategy-doc mirroring (`StrategyRepository.upsert` no-ops for it), and undeletable. The tasks→projects foreign key changed from `SET_NULL` to `RESTRICT`, since a non-null column can't be set null; deleting a real Project reassigns its tasks to Unassigned in `ProjectRepository.delete` before the row goes.
 

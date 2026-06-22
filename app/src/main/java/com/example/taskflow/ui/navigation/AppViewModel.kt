@@ -8,31 +8,25 @@ import com.example.taskflow.data.model.Project
 import com.example.taskflow.data.model.StrategyEntry
 import com.example.taskflow.data.repository.ProjectRepository
 import com.example.taskflow.data.repository.StrategyRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * App-level navigation state backing the drawer and the Projects overview page. Exposes the user's
- * Projects in saved (sort_order) order — the same list both surfaces render, per SPEC §Side menu and
- * §Projects overview — and creates new Projects from the overview's add affordance. Reorder is
- * deferred to the Strategy-doc work (see _build.md scope call), so the list is otherwise read-only.
+ * App-level Project-creation plumbing. The drawer's per-Project list and the Projects-overview page
+ * that once consumed a `projects` flow here are both gone (Projects now live inside Later, grouped by
+ * the schedule layer's own observation). What remains is [createProject], the name-only creation path
+ * — preserved from [project-create] for the Later-by-Project lifecycle UI ([project-lifecycle-later])
+ * to wire into the editor's "New Project" picker entry. It has no caller in this batch.
  */
 class AppViewModel(
     private val projectRepository: ProjectRepository,
     private val strategyRepository: StrategyRepository,
 ) : ViewModel() {
 
-    val projects: StateFlow<List<Project>> =
-        projectRepository.getAllOrdered()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     /**
-     * Create a Project from a typed name (SPEC §Projects overview). A name is all creation asks for;
-     * a blank name is ignored. The Project lands at the end of the sort order (max + 1) so it appears
-     * last on the overview, in the side menu, and in the Strategy doc. Its empty Strategy entry is
-     * created alongside so the Strategy-doc paragraph exists to be written later.
+     * Create a Project from a typed name (SPEC §Create or delete a Project). A name is all creation
+     * asks for; a blank name is ignored. The Project lands at the end of the sort order (max + 1) so
+     * it appears last on Later (above the pinned Unassigned card) and in the Strategy doc. Its empty
+     * Strategy entry is created alongside so the Strategy-doc paragraph exists to be written later.
      */
     fun createProject(name: String) {
         val trimmed = name.trim()

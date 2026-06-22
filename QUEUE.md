@@ -14,28 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Later-by-Project screen — Project-grouped Later; remove Project view + overview** **[later-by-project-screen]**
-Depends on: [unassigned-project-model]
-
-The visible half of the redesign. Later stops showing far-future tasks by date and becomes a list of expand/collapse Project cards: one card per Project (every Project shown, even empty), the system Unassigned card pinned at the bottom. Each card holds that Project's far-future dated tasks (DD/MM kept) and its undated tasks, reorderable within the card. The two surfaces it replaces are deleted — the per-Project view (`ui/project/`) and the Projects overview page (`ui/projects/`) — and the side menu drops its per-Project list. Reaching a Project now means opening Later and expanding its card; there is no separate Project surface, which is what removes the "tapping a Project whisks you off the spine" feel. Depends on the data-model batch so every task already has a Project to group under.
-
-Build:
-- `app/src/main/java/com/example/taskflow/ui/schedule/SlotPage.kt` and `ScheduleViewModel.kt` — render the Later slot as Project-grouped expand/collapse cards, ordered to match the Strategy doc with Unassigned pinned bottom (empty Projects shown as empty cards); each card lists the Project's far-future dated + undated tasks; within-card drag-reorder persisted via the existing `updateProjectSortOrder`. Today/Tomorrow/Soon rendering unchanged. (A dedicated Later composable in `ui/schedule/` is fine if cleaner than branching SlotPage.) Soft anti-flood detail, pin against the real screen: a large Project's card can expand a chunk at a time (~7 tasks) rather than all at once — not load-bearing, decide on device.
-- `app/src/main/java/com/example/taskflow/ui/project/ProjectScreen.kt` + `ProjectViewModel.kt` — delete; the per-Project view is gone.
-- `app/src/main/java/com/example/taskflow/ui/projects/ProjectsOverviewScreen.kt` — delete; the overview page is gone.
-- `app/src/main/java/com/example/taskflow/ui/navigation/AppViewModel.kt` — remove the Projects-overview spine page and per-Project overlay navigation; drop the projects flow that fed the drawer's per-Project list (Later's grouping is driven from the schedule layer).
-- `app/src/main/java/com/example/taskflow/ui/navigation/AppRoot.kt` — remove the Projects overview page from the spine pager and the Project-overlay host.
-- `app/src/main/java/com/example/taskflow/ui/navigation/AppDrawer.kt` — drawer lists Today · Tomorrow · Soon · Later · Strategy plus app-actions; remove the per-Project entries and the empty-Projects teaching blurb.
-- `app/src/main/java/com/example/taskflow/ui/navigation/Destination.kt` — remove the Project and Projects-overview destinations.
-- `app/src/main/java/com/example/taskflow/ui/edit/EditTaskScreen.kt` + `EditTaskViewModel.kt` — the Project picker is the move-between-Projects path; ensure it lists user Projects and can set Unassigned, and confirm an undated task can be produced by clearing the date (the Q2b flag) — close the gap if the add flow can't yet.
-- `app/src/main/java/com/example/taskflow/ui/common/PlaceholderScreen.kt` — remove if left unused after the overlay deletions; otherwise leave.
-
-Test:
-- User-run on device: Later shows every Project as an expand/collapse card with Unassigned pinned bottom; empty Projects appear as empty cards; a card holds its far-future dated tasks (DD/MM) and undated tasks; reordering within a card persists across relaunch.
-- User-run on device: the Projects overview page is gone from the spine; no per-Project view opens; the side menu lists only Today · Tomorrow · Soon · Later · Strategy.
-- User-run on device: moving a task to another Project via the editor refiles it and it shows under the new Project's card; an undated task created via the add flow (date cleared) lands in its Project's Later card.
-- Claude-runnable: the project builds with no dangling references to the deleted Project view / overview screens.
-
 **Spine header polish — title-slide overlap + Material chevron arrows** **[spine-header-polish]**
 
 Two issues in the Schedule spine header (`ScheduleScreen.kt`), both seen on-device verifying 0003 and both predating it. (1) Moving backward through the spine (e.g. Soon → Tomorrow), the outgoing page name doesn't clear before the incoming arrives, so the two titles overlap mid-transition. (2) The ←/→ arrows are plain text glyphs — small and baseline-aligned, so they sit low; they should be Material chevrons, vertically centred with the title. No spec-edit; both are below SPEC's altitude.
@@ -130,6 +108,10 @@ Planned tests that couldn't run in their own session. /plan rolls the runnable o
 
 - **[device-verify-core-screens → 0002] Schedule date-matrix rendering.** On a device, verify dated tasks render with their DD/MM label in the right slot for the cases the FAB can't seed yet: a 2–7-day date in Soon, an 8+-day date in Later, and a past date staying on Today (DD/MM, no overdue label). Confirmed by: user-run on device once 0006 ships date-editing — the only path to those dates. (Slot math already unit-tested in 0002; the non-Today DD/MM render is exercised by the Tomorrow check in [device-verify-core-screens].)
 
+- **[later-by-project-screen] Move a task between Projects via the editor.** On a device, change a task's Project in the edit dialogue and confirm it refiles under the new Project's card on Later and leaves its old card. Confirmed by: user-run on device. Deferral: blocked on [project-lifecycle-later] restoring Project creation — this build removed the only create path (old overview "+ New Project"), so with only Unassigned there is no second Project to move into. Runnability: user-run.
+
+- **[later-by-project-screen] Multi-Project Later render.** On a device, confirm Later shows several user-Project cards in Strategy-doc order, and that a user Project's card holds its far-future (8+ day) dated tasks with the DD/MM label. (This session verified the Unassigned card, empty cards, and undated-add; multi-user-Project ordering and far-future-dated-under-a-user-Project couldn't run — the user has no user Projects and none can be created in this build.) Confirmed by: user-run on device. Deferral: blocked on [project-lifecycle-later] restoring Project creation. Runnability: user-run.
+
 ## Captures
 
 Captured outside /plan. Picked up and routed during the next /plan session.
@@ -140,6 +122,12 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 
 - **Verify Project-deletion data behaviour end-to-end once the delete UI exists.** [unassigned-project-model] built the repository logic: deleting a real Project reassigns its tasks to the system Unassigned Project (`TaskDao.reassignTasksToProject`, called by `ProjectRepository.delete`), and the Unassigned Project is undeletable (`ProjectRepository.delete` no-ops when `isSystem`). The reassign query was verified live on-device this session; the two guards were verified by code inspection. There is no automated test of `ProjectRepository.delete` itself and no delete gesture yet to exercise it end-to-end. When [project-lifecycle-later] builds the long-press-drag delete, its test pass should confirm: deleting a real Project moves its tasks onto Unassigned with none orphaned, and the Unassigned card cannot be deleted.
   Blocked by: [project-lifecycle-later] — behavioural; the delete gesture must exist to test this end-to-end.
+
+- **Within-card drag-to-reorder on Later Project cards.** The [later-by-project-screen] build ships the Project-grouped Later cards but without within-card task reordering — split out 2026-06-22 mid-build. It was split because it is a from-scratch reorderable list: there is no drag-reorder pattern anywhere in the app yet to copy, no library for it, and it carries real design uncertainty (nested scrolling, variable row heights, persistence). It also shares its whole mechanism with [task-reorder-within-list], which builds the same drag primitive for the Today/Tomorrow/Soon slots and is not built yet. Building it in both batches separately would invent the same primitive twice. This capture is the within-card half: drag a task within its Project's Later card to a new position, and persist the order via the existing `updateProjectSortOrder`, surviving relaunch. SPEC §Schedule view and §Reorder within a Schedule slot already describe cards as reorderable within, so this is feature-only, no spec-edit. Best designed together with [task-reorder-within-list] so the drag primitive is written once for both surfaces. Moved-out test: on a device, drag a task within a Later card to a new position and confirm the order persists across navigation and relaunch (user-run).
+  Blocked by: [later-by-project-screen] — landing; the Later cards must exist before within-card reorder attaches. Pairs with [task-reorder-within-list] (same drag primitive).
+
+- **Later cards open showing the first ~3 tasks, not collapsed.** Decided 2026-06-22 during the [later-by-project-screen] device test. The cards currently open collapsed (header only) — that's the collapsed-by-default decision (project-card-default-collapsed, folded into SPEC 2026-06-16, kept through the Later-by-Project rewrite c70616b). Alex wants Later to show some tasks at a glance, not just Project headers. Change: each Later card opens with its first ~3 tasks visible, the rest behind the expand/collapse control. The number is 3, not the 7 first floated, because the app is built against overwhelm — ~7 per card across several Projects rebuilds the "wall of tasks" that collapsed-by-default existed to prevent, whereas ~3 is a glanceable peek that keeps Later reading as a calm overview. This reverses the collapsed-by-default decision, so it needs a SPEC §Schedule view edit (replace the "collapsed by default… opt-in act" wording with the peek-then-expand behaviour, keeping the calm-overview rationale) plus a follow-up build to LaterPage.kt. Distinct from the existing anti-flood note (a large expanded card reveals ~7 at a time) — that is chunking on expand, not the default state. Touches LaterPage.kt, the same file as the within-card drag-reorder capture above, so /plan may batch the two LaterPage follow-ups together.
+  Not blocked: buildable once these Later cards land (this session); the spec-edit precedes the follow-up build within /plan.
 
 ### Parked
 
