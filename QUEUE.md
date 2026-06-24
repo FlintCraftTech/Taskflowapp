@@ -14,15 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**SPEC polish edits — Tomorrow date label + side-menu opener** **[polish-spec-edits]**
-Blocks: [tomorrow-no-date-label], [disable-drawer-swipe-open]
-
-Two polish batches below each folded a one-sentence SPEC change into a feature build. The method keeps SPEC edits out of feature builds, so both spec sentences are pulled out here into one spec-edit batch — combined rather than split per-feature to keep the extra ceremony to a single session. Each feature batch now depends on this one. No code here; SPEC only.
-
-Spec-edit:
-- SPEC §Schedule view: rewrite the date-label sentence so only Soon and Later show the DD/MM date. State that Tomorrow no longer shows a date label — the page name is the day signal. Leave Today's rule (label only when the date is in the past) unchanged. (Serves [tomorrow-no-date-label].)
-- SPEC §Side menu: change "opens from the left edge" so it states the menu opens by tapping the ☰ button in the top bar (still sliding in from the left as a drawer). Record that swipe-to-open is intentionally disabled — one opener, the ☰ — so the gesture doesn't collide with the spine's horizontal-swipe navigation. (Serves [disable-drawer-swipe-open].)
-
 **Later cards open showing the first ~3 tasks — SPEC edit** **[later-peek-spec-edit]**
 Blocks: [later-card-peek]
 
@@ -32,7 +23,6 @@ Spec-edit:
 - SPEC §Schedule view: replace the sentence "A card is **collapsed by default**; expanding it is an opt-in act, so Later opens as a calm overview of the user's areas of life rather than a wall of tasks." with the peek behaviour — each card opens showing its first ~3 tasks, the rest revealed by the expand/collapse control — keeping the calm-overview-not-a-wall-of-tasks rationale.
 
 **Drop the date label from Tomorrow** **[tomorrow-no-date-label]**
-Depends on: [polish-spec-edits]
 
 Tomorrow rows currently show their DD/MM date (SPEC §Schedule view), same as Soon and Later. But a Tomorrow task always carries exactly tomorrow's date — the slot is derived from the date, so nothing else can land there — which makes the label fully redundant with the page title. Tomorrow also has no past-date case the way Today does: a past-dated task falls onto Today, never Tomorrow, so dropping the label loses no stale-date signal. The date earns its place only on Soon (2–7 days) and Later (8+ days), where the page name doesn't tell you the actual day. Today keeps its existing rule unchanged — no label except when the date has slipped into the past. This is a design change, not a bug; the current Tomorrow labels follow the spec as written. Raised during the [add-flow-create-path-fixes] device check on 2026-06-19.
 
@@ -43,7 +33,6 @@ Test:
 - On a device: a task on Tomorrow shows no date label; Soon and Later tasks still show their DD/MM date; a past-dated task on Today still shows its date. User-run.
 
 **Open the side menu by ☰ only — disable drawer swipe-to-open** **[disable-drawer-swipe-open]**
-Depends on: [polish-spec-edits]
 
 The navigation drawer's default left-edge swipe-to-open collides with Taskflow's signature gesture: horizontal swipe is how the whole spine moves (Today ↔ Tomorrow ↔ Soon ↔ Later and onward). On Today — the leftmost, default page — a right-swipe has no previous spine page, so the drawer quietly claims it, and the same horizontal gesture means "open menu" near the edge but "change day" in the content area. That region-dependent meaning is the confusion. Resolution: the menu opens only by tapping the ☰ button; swipe-to-open is disabled. The Android edge-swipe-to-open convention was weighed and set aside — it carries less weight in an app that repurposes horizontal swipe as its core navigation, and the ☰ remains a standard, discoverable opener, so no affordance is truly lost. Verified in AppRoot.kt: the ☰ opens the drawer programmatically (`drawerState.open()`), unaffected by the gesture flag, and the spine's `HorizontalPager` is a separate gesture, also unaffected. One known side effect: disabling drawer gestures also removes swipe-to-close, but tapping the scrim or any menu item still closes it. Noticed on device 2026-06-20.
 

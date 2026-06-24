@@ -50,7 +50,7 @@ The user needs this because Projects answer "where does this belong?" while Sche
 
 The four Schedule slots — **Today**, **Tomorrow**, **Soon**, **Later** — are the four leftmost pages on a single horizontal navigation spine that continues rightward into the **Strategy** page (see *Side menu*). The user swipes between adjacent pages; Today is the default open page. Each page shows the tasks placed on that slot. On Today, Tomorrow, and Soon a task's Project is not shown — those pages are flat task lists, and during execution there the only place a task's Project surfaces is inside its edit dialogue. **Later is the exception: it is grouped by Project** (described below) — at the far horizon the area a task belongs to matters more than its exact date.
 
-Each task on Tomorrow, Soon, and Later shows its date (when the task has one) in **DD/MM** format (or **MM/DD** if the user has selected that in Settings — see *Settings → Date format*). Today's tasks do not show a date label except when the date is in the past, where the date communicates how stale the task is.
+Each task on **Soon and Later** shows its date (when the task has one) in **DD/MM** format (or **MM/DD** if the user has selected that in Settings — see *Settings → Date format*). **Tomorrow does not show a date label** — a Tomorrow task always carries tomorrow's date, so the page name is the day signal and a label would only repeat it. Today's tasks do not show a date label except when the date is in the past, where the date communicates how stale the task is.
 
 **Later — grouped by Project.** Unlike the other slots, Later does not list tasks by date. It is a vertical list of **expand/collapse cards, one per Project** — every Project the user has appears, even one with nothing in it (as an empty card). The cards are ordered to match the **Strategy doc** (see *Strategy doc*), with the system **Unassigned** Project pinned to the bottom. A card is **collapsed by default**; expanding it is an opt-in act, so Later opens as a calm overview of the user's areas of life rather than a wall of tasks.
 
@@ -256,7 +256,7 @@ The user needs this because date conventions vary by region and Taskflow ships w
 
 ### Side menu
 
-A side menu opens from the left edge as a single navigation list that mirrors the spine from top to bottom: **Today**, **Tomorrow**, **Soon**, **Later**, then a single calm row for the **Strategy doc**. Tapping any entry opens that page. Projects are not listed in the menu — they live inside **Later** (see *Schedule view*), which is how the user reaches any Project.
+A side menu opens by **tapping the ☰ button in the top bar**, sliding in from the left as a drawer. Swipe-to-open is intentionally disabled — the ☰ is the one opener — so the gesture does not collide with the spine's horizontal-swipe navigation. The menu is a single navigation list that mirrors the spine from top to bottom: **Today**, **Tomorrow**, **Soon**, **Later**, then a single calm row for the **Strategy doc**. Tapping any entry opens that page. Projects are not listed in the menu — they live inside **Later** (see *Schedule view*), which is how the user reaches any Project.
 
 Pinned to the bottom of the drawer, separated from the navigation list, are the **app actions**: **Settings**, **Help**, **Thanks**, and **Report a bug**, plus a "turn on AI for the full experience" entry that re-triggers the AI choice flow on the free tier.
 
