@@ -1,4 +1,4 @@
-# [HASH] — Wired Project creation into the editor's Project picker — "New Project" card creates and files the task; AppViewModel deleted (creation relocated to EditTaskViewModel) [project-create-picker-ui]
+# 3f841d5 — Wired Project creation into the editor's Project picker — "New Project" card creates and files the task; AppViewModel deleted (creation relocated to EditTaskViewModel) [project-create-picker-ui]
 
 Project creation had been impossible since [later-by-project-screen] removed the Projects-overview "+ New Project" button: the editor's Project picker listed only Unassigned plus existing Projects, and the creation plumbing (`AppViewModel.createProject`) had no caller. This wires creation into the one place a task's Project is already chosen, per SPEC §Create or delete a Project — the picker gains a "New Project" entry that opens a name-only card; on confirm the Project is created (appended at max-sort+1, with its empty Strategy entry alongside) and selected for the edited task, so it files in on save.
 

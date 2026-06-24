@@ -1,6 +1,9 @@
 package com.example.taskflow.ui.schedule
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -14,7 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -132,9 +140,19 @@ private fun SpineHeader(
         }
         // Centred current-page title flanked by chevrons.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Chevron(glyph = "←", visible = hasPrevious, onClick = onPrevious)
+            Chevron(
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Previous day",
+                visible = hasPrevious,
+                onClick = onPrevious,
+            )
             AnimatedSpineTitle(page = page)
-            Chevron(glyph = "→", visible = hasNext, onClick = onNext)
+            Chevron(
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Next day",
+                visible = hasNext,
+                onClick = onNext,
+            )
         }
     }
 }
@@ -155,8 +173,21 @@ private fun AnimatedSpineTitle(page: SpinePage) {
                 // Forward (to a later page): word leaves left, next enters from the right — the same
                 // direction the page content travels. Backward mirrors it.
                 val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
-                slideInHorizontally { width -> dir * width }
-                    .togetherWith(slideOutHorizontally { width -> -dir * width })
+                // The incoming title starts before the outgoing has fully left (delay < duration),
+                // so the motion reads as one continuous slide rather than two separate beats. The
+                // crossfade across that brief overlap keeps it soft — the outgoing is fading out as
+                // the incoming fades in, so the two never appear as solid titles colliding in the
+                // centre (the original overlap bug).
+                val duration = 180
+                val delay = 100
+                (slideInHorizontally(
+                    animationSpec = tween(durationMillis = duration, delayMillis = delay),
+                ) { width -> dir * width } + fadeIn(tween(durationMillis = duration, delayMillis = delay)))
+                    .togetherWith(
+                        slideOutHorizontally(
+                            animationSpec = tween(durationMillis = duration),
+                        ) { width -> -dir * width } + fadeOut(tween(durationMillis = duration)),
+                    )
             },
             label = "spineTitle",
         ) { current ->
@@ -169,11 +200,12 @@ private fun AnimatedSpineTitle(page: SpinePage) {
     }
 }
 
-/** A tappable chevron with a fixed 48dp touch target, sitting immediately beside the title. When
- *  [visible] is false it keeps its space (so the title stays centred) but shows nothing — used at
- *  the spine's ends. */
+/** A tappable chevron with a fixed 48dp touch target, sitting immediately beside the title. The
+ *  Material chevron icon is centred in the box, which the enclosing Row centres vertically against
+ *  the title. When [visible] is false it keeps its space (so the title stays centred) but shows
+ *  nothing — used at the spine's ends. */
 @Composable
-private fun Chevron(glyph: String, visible: Boolean, onClick: () -> Unit) {
+private fun Chevron(icon: ImageVector, contentDescription: String, visible: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(48.dp)
@@ -181,10 +213,10 @@ private fun Chevron(glyph: String, visible: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         if (visible) {
-            Text(
-                text = glyph,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }

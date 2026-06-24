@@ -14,17 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Spine header polish — title-slide overlap + Material chevron arrows** **[spine-header-polish]**
-
-Two issues in the Schedule spine header (`ScheduleScreen.kt`), both seen on-device verifying 0003 and both predating it. (1) Moving backward through the spine (e.g. Soon → Tomorrow), the outgoing page name doesn't clear before the incoming arrives, so the two titles overlap mid-transition. (2) The ←/→ arrows are plain text glyphs — small and baseline-aligned, so they sit low; they should be Material chevrons, vertically centred with the title. No spec-edit; both are below SPEC's altitude.
-
-Build:
-- `app/src/main/java/com/example/taskflow/ui/schedule/ScheduleScreen.kt` — stagger or fade the `AnimatedSpineTitle` / `AnimatedContent` transition so the outgoing title clears before the incoming arrives; replace the text-glyph `Chevron` composable with a Material chevron icon (`KeyboardArrowLeft`/`Right`), vertically centred with the title.
-- `app/build.gradle.kts` — add the Material icons dependency only if the chosen glyph isn't in icons-core (KeyboardArrowLeft/Right are; the extended pack only if a different chevron is wanted).
-
-Test:
-- On a device: navigate backward through the spine (Soon → Tomorrow → Today) and confirm the titles no longer overlap; confirm the arrows render as centred Material chevrons. User-run.
-
 **SPEC polish edits — Tomorrow date label + side-menu opener** **[polish-spec-edits]**
 Blocks: [tomorrow-no-date-label], [disable-drawer-swipe-open]
 
