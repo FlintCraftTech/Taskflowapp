@@ -14,20 +14,6 @@ The detailed original spec for each build batch is archived at `archive/backlog-
 
 ### Build
 
-**Create a Project from the editor's Project picker** **[project-create-picker-ui]**
-
-Project creation is currently impossible: the Later-by-Project rebuild ([later-by-project-screen]) deleted the old Projects-overview "+ New Project" button, and the editor's Project picker (`EditTaskScreen.ProjectField`) lists only Unassigned plus existing Projects — no "New Project" entry. The creation plumbing `AppViewModel.createProject` exists (preserved from [project-create]) but is wired to nothing. This batch wires it into the editor: adds the "New Project" picker entry and the name-entry card SPEC §Create or delete a Project describes, then files the edited task into the new Project. It's the unblocked slice of the retired [project-lifecycle-later]; free delete, free reorder, and the paid path stay parked behind their own dependencies. No spec-edit — SPEC §Create or delete a Project and §Edit a task already describe this.
-
-Build:
-- `app/src/main/java/com/example/taskflow/ui/edit/EditTaskScreen.kt` — add a "New Project" entry to the `ProjectField` dropdown; choosing it opens a small foregrounded name-entry card (name only). On confirm, create the Project and select it for the task.
-- `app/src/main/java/com/example/taskflow/ui/edit/EditTaskViewModel.kt` — expose a create-and-file action: invoke creation, obtain the new Project id, set it as the edited task's Project so the task files into it on save.
-- `app/src/main/java/com/example/taskflow/ui/navigation/AppViewModel.kt` — `createProject` is currently fire-and-forget (returns nothing); have it return/surface the new Project id so the editor can select the just-created Project (or relocate creation so the editor can obtain the id — build decision).
-
-Test:
-- On a device: in a task's edit dialogue, open the Project picker → "New Project" → type a name → confirm; the Project appears as a new card at the bottom of Later (above the pinned Unassigned card) and the edited task is filed into it. User-run.
-- Rolled from Deferred ([later-by-project-screen]): on a device, change a task's Project in the editor — now testable since a second Project can exist — and confirm it refiles under the new Project's card and leaves its old one. User-run.
-- Rolled from Deferred ([later-by-project-screen]): on a device, with two or more user Projects, confirm Later shows their cards in Strategy-doc order. User-run.
-
 **Spine header polish — title-slide overlap + Material chevron arrows** **[spine-header-polish]**
 
 Two issues in the Schedule spine header (`ScheduleScreen.kt`), both seen on-device verifying 0003 and both predating it. (1) Moving backward through the spine (e.g. Soon → Tomorrow), the outgoing page name doesn't clear before the incoming arrives, so the two titles overlap mid-transition. (2) The ←/→ arrows are plain text glyphs — small and baseline-aligned, so they sit low; they should be Material chevrons, vertically centred with the title. No spec-edit; both are below SPEC's altitude.
@@ -152,6 +138,8 @@ Captured outside /plan. Picked up and routed during the next /plan session.
 ---
 
 (Raw captures collect below this line, then get processed and moved above it during /plan.)
+
+**Later card "nothing in this project yet" misleads when the Project's only tasks are near-term dated.** A Later Project card shows only a Project's undated and far-future (8+ day) tasks (ScheduleViewModel.buildState — dated tasks under 8 days go to their Schedule slot, not the card). So a Project whose only task is dated Today/Tomorrow/Soon renders an empty card reading "nothing in this project yet" — accurate about Later content, but misleading because the Project does have a task, just near-term. Noticed on device 2026-06-24 verifying [project-create-picker-ui]: a Project created from a Tomorrow-dated task shows an empty Later card while the task sits correctly on Tomorrow with the Project set in its editor. Relates to the parked "Empty state copy and visuals" capture (empty Later card copy), but is distinct: there the Project truly has no tasks; here it has tasks that live elsewhere on the spine. Possible fixes to weigh at design time: copy that distinguishes "no tasks" from "no Later tasks — N on the schedule," or surfacing a Project's near-term task count on its card.
 
 
 ### Parked

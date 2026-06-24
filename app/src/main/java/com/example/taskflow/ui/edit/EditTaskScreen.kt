@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -69,7 +70,12 @@ fun EditTaskScreen(
     }
     val viewModel: EditTaskViewModel = viewModel(
         viewModelStoreOwner = editStoreOwner,
-        factory = EditTaskViewModel.factory(app.taskRepository, app.projectRepository, target),
+        factory = EditTaskViewModel.factory(
+            app.taskRepository,
+            app.projectRepository,
+            app.strategyRepository,
+            target,
+        ),
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -108,6 +114,7 @@ fun EditTaskScreen(
                 projectId = state.projectId,
                 projects = state.projects.map { it.id to it.name },
                 onProjectChange = viewModel::onProjectChange,
+                onCreateProject = viewModel::createProjectAndSelect,
             )
             DateField(dateLabel = state.dateLabel)
         }
@@ -151,14 +158,20 @@ private fun EditHeader(
     }
 }
 
-/** Editable Project picker: a button showing the current Project (or "Unassigned") plus a menu. */
+/**
+ * Editable Project picker: a button showing the current Project (or "Unassigned") plus a menu. The
+ * menu's last entry, "New Project", opens a name-only card that creates a Project on the spot and
+ * files the edited task into it (SPEC §Create or delete a Project).
+ */
 @Composable
 private fun ProjectField(
     projectId: Long?,
     projects: List<Pair<Long, String>>,
     onProjectChange: (Long?) -> Unit,
+    onCreateProject: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var showNewProjectCard by remember { mutableStateOf(false) }
     val currentName = projects.firstOrNull { it.first == projectId }?.second ?: UNASSIGNED
 
     Column {
@@ -189,9 +202,61 @@ private fun ProjectField(
                         },
                     )
                 }
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(NEW_PROJECT) },
+                    onClick = {
+                        expanded = false
+                        showNewProjectCard = true
+                    },
+                )
             }
         }
     }
+
+    if (showNewProjectCard) {
+        NewProjectCard(
+            onConfirm = { name ->
+                onCreateProject(name)
+                showNewProjectCard = false
+            },
+            onDismiss = { showNewProjectCard = false },
+        )
+    }
+}
+
+/**
+ * Name-only Project-creation card, foregrounded from the Project picker's "New Project" entry
+ * (SPEC §Create or delete a Project — a name is all creation asks for). Confirm is disabled until a
+ * non-blank name is typed; on confirm the caller creates the Project and selects it for the task.
+ */
+@Composable
+private fun NewProjectCard(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(NEW_PROJECT) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Project name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 /**
@@ -219,3 +284,4 @@ private fun DateField(dateLabel: String) {
 }
 
 private const val UNASSIGNED = "Unassigned"
+private const val NEW_PROJECT = "New Project"

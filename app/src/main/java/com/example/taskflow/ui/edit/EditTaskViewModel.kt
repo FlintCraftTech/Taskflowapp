@@ -6,8 +6,10 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.taskflow.data.model.Project
 import com.example.taskflow.data.model.ScheduleSlot
+import com.example.taskflow.data.model.StrategyEntry
 import com.example.taskflow.data.model.Task
 import com.example.taskflow.data.repository.ProjectRepository
+import com.example.taskflow.data.repository.StrategyRepository
 import com.example.taskflow.data.repository.TaskRepository
 import com.example.taskflow.domain.SlotDeriver
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,7 +68,8 @@ data class EditUiState(
  */
 class EditTaskViewModel(
     private val taskRepository: TaskRepository,
-    projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepository,
+    private val strategyRepository: StrategyRepository,
     private val target: EditTarget,
     private val clock: () -> Long = System::currentTimeMillis,
     private val zone: ZoneId = ZoneId.systemDefault(),
@@ -161,6 +164,28 @@ class EditTaskViewModel(
         form.value = form.value.copy(projectId = projectId)
     }
 
+    /**
+     * Creates a Project from a typed name and selects it for the task being edited, so the task files
+     * into the new Project on save (SPEC §Create or delete a Project). A name is all creation asks for;
+     * a blank name is ignored. The Project is appended to the end of the order (max + 1) so it appears
+     * last on Later (above the pinned Unassigned card) and as a new heading at the end of the Strategy
+     * doc; an empty Strategy entry is created alongside so its paragraph exists to be written later.
+     *
+     * Relocated here from AppViewModel.createProject: the editor's picker is the only Project-creation
+     * surface, and this view-model already owns the projectId the new id must set, so creation lives
+     * where its one caller and its one output both already are.
+     */
+    fun createProjectAndSelect(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            val nextOrder = projectRepository.getMaxSortOrder() + 1
+            val projectId = projectRepository.insert(Project(name = trimmed, sortOrder = nextOrder))
+            strategyRepository.upsert(StrategyEntry(projectId = projectId))
+            form.value = form.value.copy(projectId = projectId)
+        }
+    }
+
     /** Inserts (new) or updates (existing), then calls [onSaved] on the main scope. No-op if blank. */
     fun save(onSaved: () -> Unit) {
         val f = form.value
@@ -225,9 +250,12 @@ class EditTaskViewModel(
         fun factory(
             taskRepository: TaskRepository,
             projectRepository: ProjectRepository,
+            strategyRepository: StrategyRepository,
             target: EditTarget,
         ) = viewModelFactory {
-            initializer { EditTaskViewModel(taskRepository, projectRepository, target) }
+            initializer {
+                EditTaskViewModel(taskRepository, projectRepository, strategyRepository, target)
+            }
         }
     }
 }
